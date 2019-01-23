@@ -30,8 +30,10 @@ void server_response_callback(int handle, int req_id, int result)
 
 int main(int argc, char *argv[])
 {
+	//printf("%d",egsc_log_level);
+	//egsc_log_level = EGSC_LOG_DEBUG;
     egsc_log_debug("main enter\n");
-
+	//return -1;
     EGSC_RET_CODE ret = EGSC_RET_ERROR;
 
     ret = egsc_sdk_init();

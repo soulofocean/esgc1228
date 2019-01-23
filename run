@@ -1,0 +1,3 @@
+cd ./bin/linux
+echo `pwd`
+./egscsdk_linux_smart_device.out

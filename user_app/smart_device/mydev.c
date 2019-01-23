@@ -14,9 +14,23 @@
 #include <screen_ctrl/egsc_screen_ctrl.h>
 #include "mydev.h"
 
+#include <sys/types.h>  
+#include <netinet/in.h>  
+#include <sys/socket.h>  
+#include <sys/wait.h>  
+#include <unistd.h>  
+#include <arpa/inet.h>  
+#include <sys/time.h> 
+
+
 #define EGSC_SUBDEV_NUM     1
 #define MYDEV_SOFT_VERSION              "0.1.0"
 #define DEVICE_MAGIC_NUM_BASE           (31530)
+
+#define MAXBUF 1024  
+#define SOCKET_SERVER_PORT 8888
+#define SOCKET_SERVER_LISNUM 2
+
 
 static int s_mydev_req_id = 11111;
 static int s_mydev_dev_magic_num;           //设备唯一MAGIC数字
@@ -25,6 +39,8 @@ mydev_json_obj s_device_config_obj = NULL;  //设备用户配置信息
 
 static int s_test_task_id = -1;             //用户输入线程ID
 static int s_misc_task_id = -1;             //杂散业务线程ID
+static int new_fd;							//Socket套接字ID
+
 egsc_subdev_info s_subdev_info[EGSC_SUBDEV_NUM] = {0};
 static struct list_head s_mydev_cert_list_head;
 static struct list_head s_mydev_dev_list_head;
@@ -3830,6 +3846,15 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char buf[MAXBUF+1];
+	bzero(buf, MAXBUF + 1);
+	snprintf(buf,MAXBUF+1,"Server Response ret = %d",ret);
+	int len = send(new_fd, buf, strlen(buf), 0);
+	if (len >= 0)
+		printf("消息:%s\t发送成功，共发送了%d个字节！\n", buf, len);
+	else{
+		printf("消息'%s'发送失败！错误代码是%d，错误信息是'%s'\n",buf, errno, strerror(errno));
+	}
 }
 
 static void mydev_upload_event_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
@@ -4252,8 +4277,8 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
         mydev_json_clear(record_obj);
         record_obj = NULL;
 
-        egsc_log_user("dev_id(%s) CredenceType(%d) not match, skip report.\n", dev_id, credence_type);
-        return EGSC_RET_ERROR;
+        //egsc_log_user("dev_id(%s) CredenceType(%d) not match, skip report.\n", dev_id, credence_type);
+        //return EGSC_RET_ERROR;
     }
 
     if(strlen(user_id) > 0)
@@ -4617,6 +4642,168 @@ static EGSC_RET_CODE mydev_upload_event(char *dev_id, char *event)
     event_obj = NULL;
 
     return EGSC_RET_SUCCESS;
+}
+static int socketServerStart(unsigned int myport,unsigned int lisnum,char *serveraddr)
+{
+	int sockfd;
+	socklen_t len;  
+    struct sockaddr_in my_addr, their_addr;   
+    char buf[MAXBUF + 1];  
+    fd_set rfds;  
+    struct timeval tv;  
+    int retval, maxfd = -1;  
+	if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)   
+    {  
+        perror("socket");  
+        exit(1);  
+    }  
+    bzero(&my_addr, sizeof(my_addr));  
+    my_addr.sin_family = PF_INET;  
+    my_addr.sin_port = htons(myport);  
+    printf("port=%d lisnum=%d\n",myport,lisnum);
+    if (strlen(serveraddr)!=0){  
+		printf("addr=%s\n",serveraddr);
+        my_addr.sin_addr.s_addr = inet_addr(serveraddr);
+    }
+    else{  
+        my_addr.sin_addr.s_addr = INADDR_ANY; 
+		printf("addr is INADDR_ANY\n");
+    }
+          
+    if (bind(sockfd, (struct sockaddr *) &my_addr, sizeof(struct sockaddr))== -1)   
+    {  
+        perror("bind");  
+        exit(1);  
+    }  
+      
+    if (listen(sockfd, lisnum) == -1)   
+    {  
+        perror("listen");  
+        exit(1);  
+    }  
+      
+    while (1)   
+    {  
+        egsc_log_user("\n----Waiting for connecting……\n");  
+        len = sizeof(struct sockaddr);  
+          
+        if ((new_fd =accept(sockfd, (struct sockaddr *) &their_addr,&len)) == -1)   
+        {  
+            perror("accept");  
+            exit(errno);  
+        }   
+        else  
+            printf("server: got connection from %s, port %d, socket %d\n", inet_ntoa(their_addr.sin_addr),ntohs(their_addr.sin_port), new_fd);  
+              
+        /* 开始处理每个新连接上的数据收发 */  
+        printf("\n准备就绪，可以开始聊天了……直接输入消息回车即可发信息给对方\n");  
+        while (1)   
+        {  
+            /* 把集合清空 */  
+            FD_ZERO(&rfds);  
+              
+            /* 把标准输入句柄0加入到集合中 */  
+            FD_SET(0, &rfds);  
+            maxfd = 0;  
+              
+            /* 把当前连接句柄new_fd加入到集合中 */  
+            FD_SET(new_fd, &rfds);  
+            if (new_fd > maxfd)  
+                maxfd = new_fd;  
+                  
+            /* 设置最大等待时间 */  
+            tv.tv_sec = 1;  
+            tv.tv_usec = 0;  
+              
+            /* 开始等待 */  
+            retval = select(maxfd + 1, &rfds, NULL, NULL, &tv);  
+            if (retval == -1)   
+            {  
+                printf("将退出，select出错！ %s", strerror(errno));  
+                break;  
+            }   
+            else if (retval == 0)   
+            {  
+                //printf("没有任何消息到来，用户也没有按键，继续等待……\n");
+                continue;  
+            }   
+            else   
+            {  
+                if (FD_ISSET(0, &rfds))   
+                {  
+                    /* 用户按键了，则读取用户输入的内容发送出去 */  
+                    bzero(buf, MAXBUF + 1);  
+                    fgets(buf, MAXBUF, stdin);  
+                    if (!strncasecmp(buf, "quit", 4))   
+                    {  
+                        printf("自己请求终止聊天！\n");  
+                        break;  
+                    }  
+                    printf("strlen=%d\n",strlen(buf));
+                    len = send(new_fd, buf, strlen(buf) - 1, 0);  
+                    if (len >= 0)  
+                        printf("消息:%s\t发送成功，共发送了%d个字节！\n", buf, len);  
+                    else   
+                    {  
+                        printf("消息'%s'发送失败！错误代码是%d，错误信息是'%s'\n",buf, errno, strerror(errno));  
+                        break;  
+                    }  
+                }  
+                if (FD_ISSET(new_fd, &rfds))   
+                {  
+                    /* 当前连接的socket上有消息到来则接收对方发过来的消息并显示 */  
+                    bzero(buf, MAXBUF + 1);  
+                    /* 接收客户端的消息 */  
+                    len = recv(new_fd, buf, MAXBUF, 0);
+                    if (len > 0){  
+                        printf("接收消息成功:'%s'，共%d个字节的数据\n",buf, len);
+						if(strcmp(buf,"open_door")==0){
+							char input_req_dev[128] = {0};
+							char input_req_cont[1024] = {0}; 
+							strcpy(input_req_dev,"30102293573571590001");
+							strcpy(input_req_cont,"{\"deviceID\":\"30102293573571590001\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}");
+							egsc_log_user("get user req devid(%s).\n", input_req_dev);
+							egsc_log_user("get user req content(%s).\n", input_req_cont);
+							int send_result = mydev_upload_record(input_req_dev, input_req_cont);
+							if(send_result!=EGSC_RET_SUCCESS){
+								strcpy(buf,"upload record success!");
+								len = send(new_fd, buf, strlen(buf) - 1, 0);
+								if (len >= 0)
+									printf("消息:%s\t发送成功，共发送了%d个字节！\n", buf, len);
+								else{
+									printf("消息'%s'发送失败！错误代码是%d，错误信息是'%s'\n",buf, errno, strerror(errno));
+									break;
+								}
+							}
+						}
+                    }
+                    else   
+                    {  
+                        if (len < 0)  
+                            printf("消息接收失败！错误代码是%d，错误信息是'%s'\n",errno, strerror(errno));  
+                        else  
+                            printf("client disconnected...\n");  
+                        break;  
+                    }  
+                }  
+            }  
+        }  
+          
+        close(new_fd);  
+          
+        /* 处理每个新连接上的数据收发结束 */  
+        //printf("还要和其它连接聊天吗？(no->退出)");  
+        fflush(stdout);  
+        bzero(buf, MAXBUF + 1);  
+        //fgets(buf, MAXBUF, stdin);  
+        //if (!strncasecmp(buf, "no", 2))   
+        //{  
+        //    printf("终止聊天！\n");  
+        //    break;  
+        //} 
+    }
+	close(sockfd);
+	return 0;
 }
 
 static EGSC_RET_CODE mydev_upload_credence_load_result(char *dev_id, char *credence_load_result)
@@ -5454,6 +5641,11 @@ static EGSC_RET_CODE mydev_pak_intercom_control(char *id, char *credence_load_re
     return EGSC_RET_SUCCESS;
 }
 
+static void mydev_socket_test_task_fn(unsigned long arg)
+{
+	char addr[20] = {0};
+	socketServerStart(SOCKET_SERVER_PORT,SOCKET_SERVER_LISNUM, addr);
+}
 static void mydev_input_test_task_fn(unsigned long arg)
 {
     int ret = -1;
@@ -5549,7 +5741,8 @@ static int start_mydev_test()
     int ret = -1;
     int arg = 0;
     s_test_task_id = -1;
-    ret = egsc_platform_task_create("mydev_test_task", &s_test_task_id, mydev_input_test_task_fn, arg, 1024, 0);
+    //ret = egsc_platform_task_create("mydev_test_task", &s_test_task_id, mydev_input_test_task_fn, arg, 1024, 0);
+	ret = egsc_platform_task_create("mydev_test_task", &s_test_task_id, mydev_socket_test_task_fn, arg, 1024, 0);
     if( (ret < 0) ||
         (s_test_task_id < 0))
     {
@@ -5804,6 +5997,53 @@ int mydev_init()
     s_screen_ctrl_srv_req_cb_tbl.publish_schedule_cb = mydev_rsp_ads_publish_schedule_cb;
 
     return 0;
+}
+
+int genDevIDs(char *devid,int idlens, int offset)
+{
+	int ret = 0;
+	const int minlen = 4;
+	if(idlens<minlen){
+		return -1;
+	}
+	if(offset>0){
+		char endStr[minlen+1];
+		strcpy(endStr,devid+idlens-minlen);
+		//TODO:进位超过1000可能会计算错误，初始值弄小点就好，此BUG晚点改
+		snprintf(endStr,sizeof(endStr),"%04d",atoi(endStr)+offset);
+		printf("size=%d,len=%d,endStr=%s\n",sizeof(endStr),strlen(endStr),endStr);
+		strcpy(devid+idlens-minlen,endStr);
+	}
+	return ret;
+}
+int mydev_init_V2()
+{
+	int ret = 0;
+    egsc_log_debug("enter\n");
+    INIT_LIST_HEAD(&(s_mydev_dev_list_head));
+    ret = user_file_load_device_config();
+    if(ret < 0)
+    {
+        egsc_log_user("load dev conf file failed, please check.\n");
+        return ret;
+    }
+	struct list_head *head;
+    user_dev_info *pos;
+
+    head = &s_mydev_dev_list_head;
+	pos = list_first_entry(head, typeof(*pos), node);
+	printf("size=%d devid=%s\n",strlen(pos->dev_info.id),pos->dev_info.id);
+	int offset = 100;
+	int len =strlen(pos->dev_info.id);
+	genDevIDs(pos->dev_info.id, len, offset);
+	/*char endStr[5];
+	strcpy(endStr,pos->dev_info.id+len-4);
+	snprintf(endStr,sizeof(endStr),"%04d",atoi(endStr)+offset);
+	printf("size=%d,len=%d,endStr=%s\n",sizeof(endStr),strlen(endStr),endStr);
+	strcpy(pos->dev_info.id+len-4,endStr);*/
+	pos = list_first_entry(head, typeof(*pos), node);
+	printf("size=%d devid=%s\n",strlen(pos->dev_info.id),pos->dev_info.id);
+	return 0;
 }
 
 int mydev_uninit()

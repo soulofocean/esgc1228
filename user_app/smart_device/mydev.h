@@ -8,6 +8,7 @@
 
 #define egsc_log_user(fmt, args...)  egsc_log_print(EGSC_LOG_INFO,"[EGSC] "fmt, ##args)
 
+
 typedef enum _MYDEV_CREDENCE_TYPE
 {
     CREDENCE_TYPE_BUTTON                = 0,        //按钮（协议文档当前未定义，临时添加）
@@ -217,6 +218,7 @@ typedef struct _user_dev_info
 }user_dev_info;
 
 int mydev_init();
+int mydev_init_V2();
 int mydev_uninit();
 int mydev_create();
 int mydev_delete();

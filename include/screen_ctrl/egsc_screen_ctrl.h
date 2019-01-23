@@ -3,10 +3,10 @@
 
 #include "../egsc_command.h"
 
-// ĞÅÏ¢·¢²¼ÆÁ¿ØÖÆÆ÷ EGSC_TYPE_SCREEN_CTRL -------------------------------------------------
-// Éè±¸×¨ÓĞ²ÎÊı
+// ä¿¡æ¯å‘å¸ƒå±æ§åˆ¶å™¨ EGSC_TYPE_SCREEN_CTRL -------------------------------------------------
+// è®¾å¤‡ä¸“æœ‰å‚æ•°
 
-// ·şÎñÆ÷ÇëÇó»Øµ÷º¯Êı±í
+// æœåŠ¡å™¨è¯·æ±‚å›è°ƒå‡½æ•°è¡¨
 typedef struct _egsc_screen_ctrl_cb_tbl
 {
     egsc_dev_reset_cb                       reset_cb;
@@ -26,7 +26,7 @@ typedef struct _egsc_screen_ctrl_cb_tbl
     egsc_dev_ads_publish_schedule_cb        publish_schedule_cb;
 }egsc_screen_ctrl_cb_tbl;
 
-// Éè±¸ÇëÇó½Ó¿Úº¯Êı±í
+// è®¾å¤‡è¯·æ±‚æ¥å£å‡½æ•°è¡¨
 typedef struct _egsc_screen_ctrl_if_tbl
 {
     egsc_dev_upload_dev_status_if   upload_dev_status_if;
