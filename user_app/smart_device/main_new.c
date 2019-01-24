@@ -9,11 +9,13 @@
 #include "mydev.h"
 #include "socket_server.h"
 
+#include "myMQ.h"
+
 
 #define DEV_NUM 5
 #define MSGKEY 8888//ftok(".",8)
 
-typedef struct _msgQueenDataType{
+/*typedef struct _msgQueenDataType{
 	int offset;
 	int devType;
 }msgQueenDataType;
@@ -21,7 +23,7 @@ typedef struct _msgQueenDataType{
 typedef struct _message_struct{
 	long msgType;
 	msgQueenDataType msgData;
-}msg_struct;
+}msg_struct;*/
 
 int main_send_mq()
 {
