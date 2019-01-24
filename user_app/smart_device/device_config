@@ -5,17 +5,17 @@
 "encrpyt_enable":0,
 "dev_type":2009,
 "vendor_num":1001,
-"id":"229357159357",
+"id":"201901230001",
 "vendor_name":"海康",
 "machine_num":0,
-"location":"东侧门入口",
+"location":"恒大山水城一期",
 "name":"人行门禁",
 "version":"V1.0.2_20181108001",
 "subdev":
 [
 	{
 	"subdev_type":3010,
-	"id":"229357357159",
+	"id":"201901230001",
 	"subdev_num":1,
 	"dev_name":"门禁读头",
 	"vendor_name":"海康",
