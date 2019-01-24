@@ -4696,7 +4696,7 @@ static int socketServerStart(unsigned int myport,unsigned int lisnum,char *serve
             printf("server: got connection from %s, port %d, socket %d\n", inet_ntoa(their_addr.sin_addr),ntohs(their_addr.sin_port), new_fd);  
               
         /* 开始处理每个新连接上的数据收发 */  
-        printf("\n准备就绪，可以开始聊天了……直接输入消息回车即可发信息给对方\n");  
+        //printf("\n准备就绪，可以开始聊天了……直接输入消息回车即可发信息给对方\n");  
         while (1)   
         {  
             /* 把集合清空 */  
@@ -4760,13 +4760,13 @@ static int socketServerStart(unsigned int myport,unsigned int lisnum,char *serve
 						if(strcmp(buf,"open_door")==0){
 							char input_req_dev[128] = {0};
 							char input_req_cont[1024] = {0}; 
-							strcpy(input_req_dev,"30102293573571590001");
-							strcpy(input_req_cont,"{\"deviceID\":\"30102293573571590001\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}");
+							strcpy(input_req_dev,"30102019012300010001");
+							strcpy(input_req_cont,"{\"deviceID\":\"30102019012300010001\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}");
 							egsc_log_user("get user req devid(%s).\n", input_req_dev);
 							egsc_log_user("get user req content(%s).\n", input_req_cont);
 							int send_result = mydev_upload_record(input_req_dev, input_req_cont);
 							if(send_result!=EGSC_RET_SUCCESS){
-								strcpy(buf,"upload record success!");
+								strcpy(buf,"upload record fail!");
 								len = send(new_fd, buf, strlen(buf) - 1, 0);
 								if (len >= 0)
 									printf("消息:%s\t发送成功，共发送了%d个字节！\n", buf, len);
@@ -6003,14 +6003,18 @@ int genDevIDs(char *devid,int idlens, int offset)
 {
 	int ret = 0;
 	const int minlen = 4;
+	int result = 0;
 	if(idlens<minlen){
 		return -1;
 	}
 	if(offset>0){
 		char endStr[minlen+1];
 		strcpy(endStr,devid+idlens-minlen);
-		//TODO:进位超过1000可能会计算错误，初始值弄小点就好，此BUG晚点改
-		snprintf(endStr,sizeof(endStr),"%04d",atoi(endStr)+offset);
+		//TODO:进位超过1000可能会计算错误，初始值弄小点就好
+		result = atoi(endStr)+offset;
+		if(result>10000)
+			return EGSC_RET_ERROR;
+		snprintf(endStr,sizeof(endStr),"%04d",result);
 		printf("size=%d,len=%d,endStr=%s\n",sizeof(endStr),strlen(endStr),endStr);
 		strcpy(devid+idlens-minlen,endStr);
 	}
