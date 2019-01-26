@@ -28,7 +28,7 @@ void server_response_callback(int handle, int req_id, int result)
     return;
 }
 
-int main(int argc, char *argv[])
+int main_old(int argc, char *argv[])
 {
 	//printf("%d",egsc_log_level);
 	//egsc_log_level = EGSC_LOG_DEBUG;

@@ -6,14 +6,14 @@
 #include <errno.h> 
 #include<string.h>
 
-#include "mydev.h"
+#include "egsc_util.h"
 #include "socket_server.h"
 
 #include "myMQ.h"
+//#include<stdlib.h>
 
 
 #define DEV_NUM 5
-#define MSGKEY 8888//ftok(".",8)
 
 /*typedef struct _msgQueenDataType{
 	int offset;
@@ -31,10 +31,10 @@ int main_send_mq()
 	int ret;
 	int msqid;
 	int msg_type;
-	printf("ftok=%d\n",MSGKEY);
-	msqid=msgget(MSGKEY,IPC_EXCL);  /*检查消息队列是否存在*/    
+	printf("ftok=%d\n",SOCKET_RSV_MQ_KEY);
+	msqid=msgget(SOCKET_RSV_MQ_KEY,IPC_EXCL);  /*检查消息队列是否存在*/    
 	if(msqid < 0){      
-		msqid = msgget(MSGKEY,IPC_CREAT|0666);/*创建消息队列*/
+		msqid = msgget(SOCKET_RSV_MQ_KEY,IPC_CREAT|0666);/*创建消息队列*/
 		if(msqid <0){
 			printf("failed to create msq | errno=%d [%s]\n",errno,strerror(errno));     
 			return -1;
@@ -64,7 +64,7 @@ int fork_rcv_mq(msgQueenDataType *myarg)
 	int msgid,ret;
 	msg_struct msgs;
 	while(1){
-		msgid=msgget(MSGKEY,IPC_EXCL);
+		msgid=msgget(SOCKET_RSV_MQ_KEY,IPC_EXCL);
 		if(msgid<0){
 			printf("get msgid fail!errno=%d[%s]",errno,strerror(errno));
 			sleep(1);
@@ -123,15 +123,35 @@ void test()
 	printf("test\n");
 }
 
-int main_old(int argc, char * argv [ ])
+int main_new(int argc, char * argv [ ])
 {
 	egsc_log_debug("main enter\n");
-    EGSC_RET_CODE ret = EGSC_RET_ERROR;
-	mydev_init_V2();
-	char tmp[20]={0};
-	if(argv[1])
-		strncpy(tmp,argv[1],sizeof(tmp));
-	socketServerStart(SOCKET_SERVER_PORT, SOCKET_SERVER_LISNUM, tmp);
+    int ret=0;
+	int mqKey = 8888;
+	msg_struct msgs,msgs_out={0};
+	//msg_struct *p=(msg_struct*)malloc(sizeof(msg_struct));
+	msgs.msgData.devType = 9;
+	msgs.msgData.offset = 3;
+	msgs.msgType = (msgs.msgData.devType << 16) + msgs.msgData.offset;
+	strncpy(msgs.msgData.info,"HelloMQ",MQ_INFO_BUFF);
+	printf("msgType:%ld %ld %ld\n",msgs.msgType,msgs.msgType >> 16,msgs.msgType & 0xFFFF);
+	ret = Enqueue_MQ(mqKey, msgs, sizeof(msg_struct)-sizeof(long),ipc_no_wait);
+	msgs.msgData.offset = 5;
+	ret = Enqueue_MQ(mqKey, msgs, sizeof(msg_struct)-sizeof(long),ipc_no_wait);
+	while(1){
+		ret = Dequeue_MQ(mqKey, msgs.msgType, &msgs_out,sizeof(msg_struct),ipc_no_wait);
+		if(ret<0)
+			break;
+		printf("main:devtype=[%d] offset=[%d]\ninfo=%s\n",msgs_out.msgData.devType,msgs_out.msgData.offset,msgs_out.msgData.info);
+	}
+	//msgs_out = Dequeue_MQ(mqKey, msgs.msgType);
+	//printf("main:devtype=[%d] offset=[%d]\n",msgs_out.msgData.devType,msgs_out.msgData.offset);
+	//ret = Delete_MQ(mqKey);//删除消息队列
+	//mydev_init_V2();
+	//char tmp[20]={0};
+	//if(argv[1])
+	//	strncpy(tmp,argv[1],sizeof(tmp));
+	//socketServerStart(SOCKET_SERVER_PORT, SOCKET_SERVER_LISNUM, tmp);
 	return ret;
 	//return main_fork(argc,argv);
 }

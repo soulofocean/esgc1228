@@ -115,7 +115,7 @@ int main2(int argc, char **argv)
             {  
                 /* 用户按键了，则读取用户输入的内容发送出去 */  
                 bzero(buffer, MAXBUF + 1);  
-                fgets(buffer, MAXBUF, stdin);  
+                fgets(buffer, MAXBUF, stdin);		
                 if (!strncasecmp(buffer, "quit", 4))   
                 {  
                     printf("自己请求终止聊天！\n");  
