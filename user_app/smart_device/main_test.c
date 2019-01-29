@@ -4,7 +4,7 @@
 #include "mySocket.h"
 #include "myMQ.h"
 
-int main(int argc, char * argv [ ])
+int main_test(int argc, char * argv [ ])
 {
 	egsc_log_level = EGSC_LOG_DEBUG;
 	egsc_log_debug("main enter\n");

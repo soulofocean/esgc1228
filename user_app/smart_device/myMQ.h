@@ -23,9 +23,10 @@ typedef enum _ipc_wait_enum{
 	ipc_need_wait = 0,
 	ipc_no_wait = IPC_NOWAIT
 }IPC_WAIT_ENUM;
-int Enqueue_MQ(int mqKey,msg_struct msgs,int msgssize, IPC_WAIT_ENUM enqueuetype);
-int Dequeue_MQ(int mqKey,long msgType,msg_struct *msgbuff, int buffsize,IPC_WAIT_ENUM dequeuetype);
-int Delete_MQ(int mqKey);
+int Enqueue_MQ(unsigned int mqKey,msg_struct msgs,int msgssize, IPC_WAIT_ENUM enqueuetype);
+int Dequeue_MQ(unsigned int mqKey,long msgType,msg_struct *msgbuff, int buffsize,IPC_WAIT_ENUM dequeuetype);
+int Delete_MQ(unsigned int mqKey);
+unsigned int GetDispatchMQKey(long msg_type);
 int PutRsvMQ(msg_struct msgs);
 int PutSendMQ(msg_struct msgs);
 int PutDispatchMQ(msg_struct msgs);
@@ -33,4 +34,5 @@ int PutDispatchNMQ(msg_struct msgs,int put_count);
 int GetRsvMQ(msg_struct *msgbuff);
 int GetSendMQ(msg_struct *msgbuff);
 int GetDispatchMQ(long msgType,msg_struct *msgbuff);
+int DelDispatchMQ(long msgType);
 #endif

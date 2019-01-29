@@ -224,6 +224,7 @@ int mydev_create();
 int mydev_delete();
 int mydev_start();
 int mydev_stop();
+int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset);
 
 #endif
 

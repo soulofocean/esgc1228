@@ -8,7 +8,7 @@
 #include "myMQ.h"
 #include "egsc_util.h"
 
-int Enqueue_MQ(int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
+int Enqueue_MQ(unsigned int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
 {
 	int ret;
 	int msqid;
@@ -28,7 +28,7 @@ int Enqueue_MQ(int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
 	return ret;
 }
 
-int Dequeue_MQ(int mqKey,long msgType,msg_struct *msgbuff, int buffsize,IPC_WAIT_ENUM dequeue_type)
+int Dequeue_MQ(unsigned int mqKey,long msgType,msg_struct *msgbuff, int buffsize,IPC_WAIT_ENUM dequeue_type)
 {
 	int msgid;
 	int ret = 0;
@@ -46,7 +46,7 @@ int Dequeue_MQ(int mqKey,long msgType,msg_struct *msgbuff, int buffsize,IPC_WAIT
 	}
 	return ret;
 }
-int Delete_MQ(int mqKey)
+int Delete_MQ(unsigned int mqKey)
 {
 	int msgid;
 	int ret = 0;
@@ -64,6 +64,10 @@ int Delete_MQ(int mqKey)
 	}
 	return ret;
 }
+unsigned int GetDispatchMQKey(long msg_type)
+{
+	return msg_type & 0xFFFFFFFF;
+}
 int PutRsvMQ(msg_struct msgs)
 {
 	return Enqueue_MQ(SOCKET_RSV_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
@@ -74,14 +78,14 @@ int PutSendMQ(msg_struct msgs)
 }
 int PutDispatchMQ(msg_struct msgs)
 {
-	return Enqueue_MQ(DISPATCH_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
+	return Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
 int PutDispatchNMQ(msg_struct msgs,int put_count)
 {
 	int index = 0;
 	int ret = 0;
-	for(;index<put_count;++put_count){
-		ret = Enqueue_MQ(DISPATCH_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
+	for(;index<put_count;++index){
+		ret = Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
 		if(ret < 0)
 			return ret;
 		if(index<put_count){
@@ -102,7 +106,10 @@ int GetSendMQ(msg_struct *msgbuff)
 }
 int GetDispatchMQ(long msgType,msg_struct *msgbuff)
 {
-	return Dequeue_MQ(DISPATCH_MQ_KEY, msgType, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
+	return Dequeue_MQ(GetDispatchMQKey(msgType), 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
 }
-
+int DelDispatchMQ(long msgType)
+{
+	return Delete_MQ(GetDispatchMQKey(msgType));
+}
 

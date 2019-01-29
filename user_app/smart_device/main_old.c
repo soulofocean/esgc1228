@@ -67,6 +67,8 @@ int main_old(int argc, char *argv[])
     while(1)
     {
         egsc_platform_sleep(1000);
+        //egsc_platform_sleep(10000);
+		//break;
     }
 
     mydev_stop();

@@ -22,7 +22,7 @@ Linux爱好者 Linux知识传播者 SOHO族 开发者 最擅长C语言
 *Hope:希望越来越多的人贡献自己的力量，为科学技术发展出力 
 * 科技站在巨人的肩膀上进步更快！感谢有开源前辈的贡献！ 
 *********************************************************************/  
-int main2(int argc, char **argv)  
+int main_client(int argc, char **argv)  
 {  
     int sockfd, len;  
     struct sockaddr_in dest;  

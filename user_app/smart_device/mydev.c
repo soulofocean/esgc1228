@@ -22,6 +22,8 @@
 #include <arpa/inet.h>  
 #include <sys/time.h> 
 
+#include "myMQ.h"
+#include "myProtocol.h"
 
 #define EGSC_SUBDEV_NUM     1
 #define MYDEV_SOFT_VERSION              "0.1.0"
@@ -1148,6 +1150,33 @@ static int user_dev_get_id(struct list_head *head, char *id, user_dev_info **dev
 
     return EGSC_RET_ERROR;
 }
+
+static int user_dev_get_type(struct list_head *head, EGSC_DEV_TYPE dev_type, user_dev_info **dev_obj)
+{
+    user_dev_info *pos, *n;
+
+    if( (NULL == dev_obj) ||
+        (NULL == head))
+    {
+        egsc_log_error("input head/req_obj NULL.\n");
+        return EGSC_RET_ERROR;
+    }
+
+    list_for_each_entry_safe(pos,n,head,node)
+    {
+        if(pos->dev_info.dev_type == dev_type)
+        {
+            egsc_log_debug("dev(type:%d)(head:0x%x) de queue list success.\n", dev_type, head);
+            *dev_obj = pos;
+            return EGSC_RET_SUCCESS;
+        }
+    }
+
+    egsc_log_error("dev(type:%d) de queue list failed.\n", dev_type);
+
+    return EGSC_RET_ERROR;
+}
+
 
 static int mydev_get_dev_id_str(struct list_head *head, int handle, egsc_subdev_id *sub_id, char *dev_id_str, int id_buff_len)
 {
@@ -5840,7 +5869,160 @@ static int stop_mydev_misc()
 
     return 0;
 }
-
+void init_door_ctrl()
+{
+	egsc_log_debug("enter.\n");
+	s_door_ctrl_status_cb = mydev_status_callback;
+    s_door_ctrl_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_door_ctrl_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_door_ctrl_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_door_ctrl_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_door_ctrl_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_door_ctrl_srv_req_cb_tbl.load_certificate_cb = mydev_load_certificate_cb;
+    s_door_ctrl_srv_req_cb_tbl.read_certificate_cb = mydev_read_certificate_cb;
+    s_door_ctrl_srv_req_cb_tbl.delete_certificate_cb = mydev_delete_certificate_cb;
+    s_door_ctrl_srv_req_cb_tbl.load_certificate_in_batch_cb = mydev_load_certificate_in_batch_cb;
+    s_door_ctrl_srv_req_cb_tbl.read_certificate_in_batch_cb = mydev_read_certificate_in_batch_cb;
+    s_door_ctrl_srv_req_cb_tbl.delete_certificate_in_batch_cb = mydev_delete_certificate_in_batch_cb;
+    s_door_ctrl_srv_req_cb_tbl.gate_ctrl_cb = mydev_gate_ctrl_cb;
+    s_door_ctrl_srv_req_cb_tbl.play_voice_cb = mydev_play_voice_cb;
+    s_door_ctrl_srv_req_cb_tbl.read_vol_cb = mydev_read_vol_cb;
+    s_door_ctrl_srv_req_cb_tbl.set_vol_cb = mydev_set_vol_cb;
+    s_door_ctrl_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+}
+void init_gate_ctrl()
+{
+	egsc_log_debug("enter.\n");
+	s_gate_ctrl_status_cb = mydev_status_callback;
+    s_gate_ctrl_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_gate_ctrl_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_gate_ctrl_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_gate_ctrl_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_gate_ctrl_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_gate_ctrl_srv_req_cb_tbl.load_certificate_cb = mydev_load_certificate_cb;
+    s_gate_ctrl_srv_req_cb_tbl.read_certificate_cb = mydev_read_certificate_cb;
+    s_gate_ctrl_srv_req_cb_tbl.delete_certificate_cb = mydev_delete_certificate_cb;
+    s_gate_ctrl_srv_req_cb_tbl.load_certificate_in_batch_cb = mydev_load_certificate_in_batch_cb;
+    s_gate_ctrl_srv_req_cb_tbl.read_certificate_in_batch_cb = mydev_read_certificate_in_batch_cb;
+    s_gate_ctrl_srv_req_cb_tbl.delete_certificate_in_batch_cb = mydev_delete_certificate_in_batch_cb;
+    s_gate_ctrl_srv_req_cb_tbl.gate_ctrl_cb = mydev_gate_ctrl_cb;
+    s_gate_ctrl_srv_req_cb_tbl.play_voice_cb = mydev_play_voice_cb;
+    s_gate_ctrl_srv_req_cb_tbl.read_vol_cb = mydev_read_vol_cb;
+    s_gate_ctrl_srv_req_cb_tbl.set_vol_cb = mydev_set_vol_cb;
+    s_gate_ctrl_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+}
+void init_elec_lpn()
+{
+	egsc_log_debug("enter.\n");
+	s_elec_lpn_status_cb = mydev_status_callback;
+    s_elec_lpn_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_elec_lpn_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_elec_lpn_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_elec_lpn_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_elec_lpn_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_elec_lpn_srv_req_cb_tbl.pak_send_showinfo_cb = mydev_pak_send_showinfo_cb;
+    s_elec_lpn_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+}
+void init_parking_lock()
+{
+	egsc_log_debug("enter.\n");
+	s_parking_lock_status_cb = mydev_status_callback;
+    s_parking_lock_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_parking_lock_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_parking_lock_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_parking_lock_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_parking_lock_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_parking_lock_srv_req_cb_tbl.pak_control_lock_cb = mydev_pak_control_lock_cb;
+    s_parking_lock_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+}
+void init_smart_ctrl()
+{
+	egsc_log_debug("enter.\n");
+	s_smart_ctrl_status_cb = mydev_status_callback;
+    s_smart_ctrl_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_smart_ctrl_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_smart_ctrl_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_smart_ctrl_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_smart_ctrl_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_smart_ctrl_srv_req_cb_tbl.boun_chan_setupalarm_cb = mydev_boun_chan_setupalarm_cb;
+    s_smart_ctrl_srv_req_cb_tbl.boun_subchan_clearalarm_cb = mydev_boun_subchan_clearalarm_cb;
+    s_smart_ctrl_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+}
+void init_elevator()
+{
+	egsc_log_debug("enter.\n");
+	s_elevator_status_cb = mydev_status_callback;
+    s_elevator_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_elevator_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_elevator_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_elevator_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_elevator_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_elevator_srv_req_cb_tbl.load_certificate_cb = mydev_load_certificate_cb;
+    s_elevator_srv_req_cb_tbl.read_certificate_cb = mydev_read_certificate_cb;
+    s_elevator_srv_req_cb_tbl.delete_certificate_cb = mydev_delete_certificate_cb;
+    s_elevator_srv_req_cb_tbl.load_certificate_in_batch_cb = mydev_load_certificate_in_batch_cb;
+    s_elevator_srv_req_cb_tbl.read_certificate_in_batch_cb = mydev_read_certificate_in_batch_cb;
+    s_elevator_srv_req_cb_tbl.delete_certificate_in_batch_cb = mydev_delete_certificate_in_batch_cb;
+    s_elevator_srv_req_cb_tbl.fac_visit_control_cb = mydev_fac_visit_control_cb;
+    s_elevator_srv_req_cb_tbl.fac_key_control_cb = mydev_fac_key_control_cb;
+    s_elevator_srv_req_cb_tbl.fac_calling_cb = mydev_fac_calling_cb;
+    s_elevator_srv_req_cb_tbl.fac_inter_call_auth_cb = mydev_fac_inter_call_auth_cb;
+    s_elevator_srv_req_cb_tbl.fac_inter_call_lighting_cb = mydev_fac_inter_call_lighting_cb;
+    s_elevator_srv_req_cb_tbl.fac_lift_lighting_cb = mydev_fac_lift_lighting_cb;
+    s_elevator_srv_req_cb_tbl.fac_delayed_closing_cb = mydev_fac_delayed_closing_cb;
+    s_elevator_srv_req_cb_tbl.fac_status_req_cb = mydev_fac_status_req_cb;
+    s_elevator_srv_req_cb_tbl.fac_lift_ba_status_cb = mydev_fac_lift_ba_status_cb;
+    s_elevator_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+}
+void init_parking_ctrl()
+{
+	egsc_log_debug("enter.\n");
+	s_parking_ctrl_status_cb = mydev_status_callback;
+    s_parking_ctrl_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_parking_ctrl_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_parking_ctrl_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_parking_ctrl_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_parking_ctrl_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_parking_ctrl_srv_req_cb_tbl.load_certificate_cb = mydev_load_certificate_cb;
+    s_parking_ctrl_srv_req_cb_tbl.read_certificate_cb = mydev_read_certificate_cb;
+    s_parking_ctrl_srv_req_cb_tbl.delete_certificate_cb = mydev_delete_certificate_cb;
+    s_parking_ctrl_srv_req_cb_tbl.load_certificate_in_batch_cb = mydev_load_certificate_in_batch_cb;
+    s_parking_ctrl_srv_req_cb_tbl.read_certificate_in_batch_cb = mydev_read_certificate_in_batch_cb;
+    s_parking_ctrl_srv_req_cb_tbl.delete_certificate_in_batch_cb = mydev_delete_certificate_in_batch_cb;
+    s_parking_ctrl_srv_req_cb_tbl.download_black_and_white_list_cb = mydev_download_black_and_white_list_cb;
+    s_parking_ctrl_srv_req_cb_tbl.pak_load_left_car_seat_cb = mydev_load_left_car_seat_cb;
+    s_parking_ctrl_srv_req_cb_tbl.gate_ctrl_cb = mydev_gate_ctrl_cb;
+    s_parking_ctrl_srv_req_cb_tbl.play_voice_cb = mydev_play_voice_cb;
+    s_parking_ctrl_srv_req_cb_tbl.read_vol_cb = mydev_read_vol_cb;
+    s_parking_ctrl_srv_req_cb_tbl.set_vol_cb = mydev_set_vol_cb;
+    s_parking_ctrl_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+    s_parking_ctrl_srv_req_cb_tbl.snap_picture_cb = mydev_snap_picture_cb;
+    s_parking_ctrl_srv_req_cb_tbl.pak_reset_dg_cb = mydev_pak_reset_dg_cb;
+    s_parking_ctrl_srv_req_cb_tbl.pak_led_display_cb = mydev_pak_led_display_cb;
+    s_parking_ctrl_srv_req_cb_tbl.pak_load_led_info_cb = mydev_pak_load_led_info_cb;
+    s_parking_ctrl_srv_req_cb_tbl.pak_control_lock_cb = mydev_pak_control_lock_cb;
+    s_parking_ctrl_srv_req_cb_tbl.pak_intercom_control_cb = mydev_rsp_pak_intercom_control_cb;
+}
+void init_screen_ctrl()
+{
+	egsc_log_debug("enter.\n");
+	s_screen_ctrl_status_cb = mydev_status_callback;
+    s_screen_ctrl_srv_req_cb_tbl.reset_cb = mydev_reset_cb;
+    s_screen_ctrl_srv_req_cb_tbl.correction_cb = mydev_correction_cb;
+    s_screen_ctrl_srv_req_cb_tbl.notify_update_cb = mydev_notify_update_cb;
+    s_screen_ctrl_srv_req_cb_tbl.read_parameter_cb = mydev_read_parameter_cb;
+    s_screen_ctrl_srv_req_cb_tbl.setting_parameters_cb = mydev_setting_parameters_cb;
+    s_screen_ctrl_srv_req_cb_tbl.query_dev_status_cb = mydev_query_dev_status_cb;
+    s_screen_ctrl_srv_req_cb_tbl.trans_material_cb = mydev_rsp_ads_trans_material_cb;
+    s_screen_ctrl_srv_req_cb_tbl.query_term_cb = mydev_rsp_ads_query_term_cb;
+    s_screen_ctrl_srv_req_cb_tbl.add_program_cb = mydev_rsp_ads_add_program_cb;
+    s_screen_ctrl_srv_req_cb_tbl.delete_program_cb = mydev_rsp_ads_delete_program_cb;
+    s_screen_ctrl_srv_req_cb_tbl.set_program_cb = mydev_rsp_ads_set_program_cb;
+    s_screen_ctrl_srv_req_cb_tbl.add_schedule_cb = mydev_rsp_ads_add_schedule_cb;
+    s_screen_ctrl_srv_req_cb_tbl.delete_schedule_cb = mydev_rsp_ads_delete_schedule_cb;
+    s_screen_ctrl_srv_req_cb_tbl.set_schedule_cb = mydev_rsp_ads_set_schedule_cb;
+    s_screen_ctrl_srv_req_cb_tbl.publish_schedule_cb = mydev_rsp_ads_publish_schedule_cb;
+}
 int mydev_init()
 {
     int ret = 0;
@@ -6001,21 +6183,22 @@ int mydev_init()
 
 int genDevIDs(char *devid,int idlens, int offset)
 {
-	int ret = 0;
+	int ret = EGSC_RET_SUCCESS;
 	const int minlen = 4;
 	int result = 0;
 	if(idlens<minlen){
-		return -1;
+		egsc_log_error("idlens[%d]<minlen[%d]\n",idlens,minlen);
+		return EGSC_RET_ERROR;
 	}
 	if(offset>0){
 		char endStr[minlen+1];
 		strcpy(endStr,devid+idlens-minlen);
-		//TODO:进位超过1000可能会计算错误，初始值弄小点就好
+		//TODO:进位超过10000可能会计算错误，初始值弄小点就好
 		result = atoi(endStr)+offset;
 		if(result>10000)
 			return EGSC_RET_ERROR;
 		snprintf(endStr,sizeof(endStr),"%04d",result);
-		printf("size=%d,len=%d,endStr=%s\n",sizeof(endStr),strlen(endStr),endStr);
+		egsc_log_debug("size=%d,len=%d,endStr=%s\n",sizeof(endStr),strlen(endStr),endStr);
 		strcpy(devid+idlens-minlen,endStr);
 	}
 	return ret;
@@ -6031,25 +6214,71 @@ int mydev_init_V2()
         egsc_log_user("load dev conf file failed, please check.\n");
         return ret;
     }
+	/*test code
 	struct list_head *head;
     user_dev_info *pos;
-
     head = &s_mydev_dev_list_head;
 	pos = list_first_entry(head, typeof(*pos), node);
 	printf("size=%d devid=%s\n",strlen(pos->dev_info.id),pos->dev_info.id);
 	int offset = 100;
 	int len =strlen(pos->dev_info.id);
 	genDevIDs(pos->dev_info.id, len, offset);
-	/*char endStr[5];
-	strcpy(endStr,pos->dev_info.id+len-4);
-	snprintf(endStr,sizeof(endStr),"%04d",atoi(endStr)+offset);
-	printf("size=%d,len=%d,endStr=%s\n",sizeof(endStr),strlen(endStr),endStr);
-	strcpy(pos->dev_info.id+len-4,endStr);*/
 	pos = list_first_entry(head, typeof(*pos), node);
-	printf("size=%d devid=%s\n",strlen(pos->dev_info.id),pos->dev_info.id);
+	printf("size=%d devid=%s\n",strlen(pos->dev_info.id),pos->dev_info.id);*/
+	s_mydev_status = 1;
 	return 0;
 }
-
+int mydev_init_by_type(EGSC_DEV_TYPE dev_type)
+{
+	switch (dev_type)
+		{
+			case EGSC_TYPE_DOOR_CTRL:
+			{
+				init_door_ctrl();
+				break;
+			}
+			case EGSC_TYPE_GATE_CTRL:
+			{
+				init_gate_ctrl();
+			}
+			case EGSC_TYPE_ELEC_LPN_CTRL:
+			{
+				init_elec_lpn();
+				break;
+			}
+			case EGSC_TYPE_PARKING_LOCK_CONTROLLER:
+			{
+				init_parking_lock();
+				break;
+			}
+			case EGSC_TYPE_SMART_CTRL_KB:
+			{
+				init_smart_ctrl();
+			}
+			case EGSC_TYPE_ELE_LINK_CTRL:
+			case EGSC_TYPE_ELEVATOR_CTRL:
+			{
+				init_elevator();
+				break;
+			}
+			case EGSC_TYPE_PARKING_CTRL:
+			{
+				init_parking_ctrl();
+				break;
+			}
+			case EGSC_TYPE_SCREEN_CTRL:
+			{
+				init_screen_ctrl();
+				break;
+			}
+			default:
+			{
+				egsc_log_error("Not support devType:%d\n",dev_type);
+				return EGSC_RET_ERROR;
+			}
+		}
+	return EGSC_RET_SUCCESS;
+}
 int mydev_uninit()
 {
     egsc_log_debug("enter\n");
@@ -6071,7 +6300,6 @@ static int mydev_create_single(user_dev_info *user_dev)
     int get_len = 0;
     int srv_req_cb_len = 0;
     int dev_req_if_len = 0;
-
     switch(user_dev->dev_info.dev_type)
     {
         case EGSC_TYPE_DOOR_CTRL:
@@ -6155,7 +6383,7 @@ static int mydev_create_single(user_dev_info *user_dev)
     ret = egsc_dev_create(&user_dev->dev_info, (egsc_dev_status_callback)user_dev->status_cb_func, &user_dev->dev_handle);
     if(ret != EGSC_RET_SUCCESS)
     {
-        egsc_log_error("(name:%s) egsc_dev_create failed.\n", user_dev->dev_info.name);
+        egsc_log_error("(id:%s) egsc_dev_create failed.\n", user_dev->dev_info.id);
         return ret;
     }
 
@@ -6164,12 +6392,10 @@ static int mydev_create_single(user_dev_info *user_dev)
     if(ret != EGSC_RET_SUCCESS || get_len != dev_req_if_len)
     {
         egsc_dev_delete(user_dev->dev_handle);
-        egsc_log_error(" dev(name:%s) func_register failed, ret(%d).\n", user_dev->dev_info.name, ret);
+        egsc_log_error(" dev(id:%s) func_register failed, ret(%d).\n", user_dev->dev_info.id, ret);
         return ret;
     }
-
-    egsc_log_info("(name:%s) dev create success.\n", user_dev->dev_info.name);
-
+    egsc_log_info("(id:%s) dev create success.\n", user_dev->dev_info.id);
     return EGSC_RET_SUCCESS;
 }
 
@@ -6250,4 +6476,65 @@ int mydev_stop()
     }
 
     return 0;
+}
+
+int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
+{
+	int ret;
+	user_dev_info *user_dev = NULL;
+	ret = user_dev_get_type(&s_mydev_dev_list_head, dev_type, &user_dev);
+    if(user_dev == NULL)
+    {
+        egsc_log_user("no found dev_type(%d), skip report.\n", dev_type);
+        return ret;
+    }
+	ret = genDevIDs(user_dev->dev_info.id, strlen(user_dev->dev_info.id),dev_offset);
+	if(ret != EGSC_RET_SUCCESS){
+		return ret;
+	}
+	ret = egsc_sdk_init();
+    if(ret != EGSC_RET_SUCCESS)
+    {
+        egsc_log_error("[%s]egsc_sdk_init failed\n",user_dev->dev_info.id);
+        return ret;
+    }
+	ret = mydev_init_by_type(user_dev->dev_info.dev_type);
+	if(ret!=EGSC_RET_SUCCESS){
+		egsc_log_error("(id:%s) mydev_init_by_type failed.\n", user_dev->dev_info.id);
+        return ret;
+	}
+    //ret = mydev_create();
+    ret = mydev_create_single(user_dev);
+    if(EGSC_RET_SUCCESS != ret){
+		egsc_log_error(" dev(id:%s) create failed, ret(%d).\n", user_dev->dev_info.id, ret);
+        return ret;
+    }
+    //ret = mydev_start();
+	ret = egsc_dev_start(user_dev->dev_handle);
+	if(ret != EGSC_RET_SUCCESS){
+		egsc_log_error("(id:%s) egsc_dev_start failed, ret(%d).\n", user_dev->dev_info.id, ret);
+		return ret;
+    }
+	else{
+		egsc_log_user("(id:%s) dev start success.\n", user_dev->dev_info.id);
+	}
+	msg_struct msgbuff;
+	msgbuff.msgType = GetMQMsgType(dev_type,dev_offset);
+	//msgbuff.msgData.devType = dev_type;
+	//msgbuff.msgData.offset = dev_offset;
+	strcpy(msgbuff.msgData.info,"\0");
+	while(strcmp(msgbuff.msgData.info,"stop")!=0)
+    {
+		GetDispatchMQ(msgbuff.msgType,&msgbuff);
+		egsc_log_info("[id:%s] get msg:[type:%d,offset:%d info:%s]\n",user_dev->dev_info.id,msgbuff.msgData.devType,msgbuff.msgData.offset,msgbuff.msgData.info);
+        //egsc_platform_sleep(1000);
+    }
+	ret = DelDispatchMQ(msgbuff.msgType);
+	egsc_log_info("[id:%s]DelDispatchMQ ret = %d\n",user_dev->dev_info.id,ret);
+    ret = mydev_stop();
+	egsc_log_info("[id:%s]mydev_stop ret = %d\n",user_dev->dev_info.id,ret);
+    ret = mydev_delete();
+	egsc_log_info("[id:%s]mydev_delete ret = %d\n",user_dev->dev_info.id,ret);
+    egsc_sdk_uninit();
+	return EGSC_RET_SUCCESS;
 }
