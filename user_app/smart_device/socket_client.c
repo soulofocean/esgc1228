@@ -61,6 +61,7 @@ int main_client(int argc, char **argv)
     }  
       
     printf("\n准备就绪，可以开始聊天了……直接输入消息回车即可发信息给对方\n");  
+	char *nowarning = NULL;
     while (1)   
     {  
         /* 把集合清空 */  
@@ -115,7 +116,8 @@ int main_client(int argc, char **argv)
             {  
                 /* 用户按键了，则读取用户输入的内容发送出去 */  
                 bzero(buffer, MAXBUF + 1);  
-                fgets(buffer, MAXBUF, stdin);		
+                nowarning = fgets(buffer, MAXBUF, stdin);	
+				printf("nowarning = %s\n",nowarning);
                 if (!strncasecmp(buffer, "quit", 4))   
                 {  
                     printf("自己请求终止聊天！\n");  

@@ -4681,6 +4681,7 @@ static int socketServerStart(unsigned int myport,unsigned int lisnum,char *serve
     fd_set rfds;  
     struct timeval tv;  
     int retval, maxfd = -1;  
+	char * nowarning = NULL;
 	if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) == -1)   
     {  
         perror("socket");  
@@ -4762,7 +4763,8 @@ static int socketServerStart(unsigned int myport,unsigned int lisnum,char *serve
                 {  
                     /* 用户按键了，则读取用户输入的内容发送出去 */  
                     bzero(buf, MAXBUF + 1);  
-                    fgets(buf, MAXBUF, stdin);  
+                    nowarning = fgets(buf, MAXBUF, stdin);  
+					egsc_log_debug("nowarning = %s\n",nowarning);
                     if (!strncasecmp(buf, "quit", 4))   
                     {  
                         printf("自己请求终止聊天！\n");  
