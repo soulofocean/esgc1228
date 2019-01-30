@@ -24,7 +24,7 @@ int Enqueue_MQ(unsigned int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqu
 	if(ret < 0){
 		egsc_log_error("msgsnd() write msg failed,ret=%d,errno=%d[%s]\n",ret,errno,strerror(errno));
 	}
-	egsc_log_debug("[%d]enqueue complete!\n",getpid());
+	egsc_log_info("[%d]enqueue MQ[key=%u]complete!\n",getpid(),mqKey);
 	return ret;
 }
 
@@ -34,7 +34,7 @@ int Dequeue_MQ(unsigned int mqKey,long msgType,msg_struct *msgbuff, int buffsize
 	int ret = 0;
 	msgid=msgget(mqKey,IPC_EXCL);
 	if(msgid<0){
-		egsc_log_error("get msgid fail!errno=%d[%s]",errno,strerror(errno));
+		egsc_log_debug("get msgid fail! mqkey = %d errno=%d[%s]",mqKey,errno,strerror(errno));
 		return -1;
 	}
 	ret = msgrcv(msgid,msgbuff,buffsize,msgType,dequeue_type);
@@ -42,7 +42,7 @@ int Dequeue_MQ(unsigned int mqKey,long msgType,msg_struct *msgbuff, int buffsize
 		egsc_log_error("msgrcv() get msg failed,errno=%d[%s]\n",errno,strerror(errno));
 	}
 	else{
-		egsc_log_debug("Function:devtype=[%d] offset=[%d]\n",msgbuff->msgData.devType,msgbuff->msgData.offset);
+		egsc_log_info("[ret=%d]:devtype=[%d] offset=[%d] info=[%s]\n",ret,msgbuff->msgData.devType,msgbuff->msgData.offset,msgbuff->msgData.info);
 	}
 	return ret;
 }
@@ -52,7 +52,7 @@ int Delete_MQ(unsigned int mqKey)
 	int ret = 0;
 	msgid=msgget(mqKey,IPC_EXCL);
 	if(msgid<0){
-		egsc_log_error("get msgid fail!errno=%d[%s]",errno,strerror(errno));
+		egsc_log_error("get msgid by key [%u]fail!errno=%d[%s]",mqKey,errno,strerror(errno));
 		return -1;
 	}
 	ret = msgctl(msgid,IPC_RMID,0);
@@ -112,4 +112,15 @@ int DelDispatchMQ(long msgType)
 {
 	return Delete_MQ(GetDispatchMQKey(msgType));
 }
-
+int DeleteAllMQ(int max_msg_id)
+{
+	int d_index = max_msg_id;
+	unsigned int d_count = 0;
+	for(;d_index>0;--d_index)
+	{
+		if(msgctl(d_index,IPC_RMID,0)==EGSC_RET_SUCCESS)
+			++d_count;
+	}
+	printf("delete count:%d\n",d_count);
+	return EGSC_RET_SUCCESS;
+}

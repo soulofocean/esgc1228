@@ -225,6 +225,7 @@ int mydev_delete();
 int mydev_start();
 int mydev_stop();
 int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset);
-
+void main_process_loop(unsigned int *dev_arr, int arr_size);
+void Child_process_loop(user_dev_info *user_dev,int dev_offset);
 #endif
 

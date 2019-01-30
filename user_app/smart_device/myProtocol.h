@@ -15,5 +15,7 @@ int processMsgFromRsvMQ(msg_struct *msgbuff);
 RsvMsgProcResultEnum handleMsg(msg_struct *msgbuff, int *count);
 unsigned int CombineInt(unsigned int devType, unsigned int devIndex);
 int Update_Dev_Fork_List(unsigned         int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount);
-long GetMQMsgType(int dev_type,int dev_offset);
+unsigned int GetMQMsgType(int dev_type,int dev_offset);
+unsigned int GetDevType(unsigned int msg_type);
+unsigned int GetDevCount(unsigned int msg_type);
 #endif

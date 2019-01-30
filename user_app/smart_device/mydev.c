@@ -6518,18 +6518,7 @@ int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
 	else{
 		egsc_log_user("(id:%s) dev start success.\n", user_dev->dev_info.id);
 	}
-	msg_struct msgbuff;
-	msgbuff.msgType = GetMQMsgType(dev_type,dev_offset);
-	//msgbuff.msgData.devType = dev_type;
-	//msgbuff.msgData.offset = dev_offset;
-	strcpy(msgbuff.msgData.info,"\0");
-	while(strcmp(msgbuff.msgData.info,"stop")!=0)
-    {
-		GetDispatchMQ(msgbuff.msgType,&msgbuff);
-		egsc_log_info("[id:%s] get msg:[type:%d,offset:%d info:%s]\n",user_dev->dev_info.id,msgbuff.msgData.devType,msgbuff.msgData.offset,msgbuff.msgData.info);
-        //egsc_platform_sleep(1000);
-    }
-	ret = DelDispatchMQ(msgbuff.msgType);
+	Child_process_loop(user_dev,dev_offset);
 	egsc_log_info("[id:%s]DelDispatchMQ ret = %d\n",user_dev->dev_info.id,ret);
     ret = mydev_stop();
 	egsc_log_info("[id:%s]mydev_stop ret = %d\n",user_dev->dev_info.id,ret);
@@ -6537,4 +6526,107 @@ int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
 	egsc_log_info("[id:%s]mydev_delete ret = %d\n",user_dev->dev_info.id,ret);
     egsc_sdk_uninit();
 	return EGSC_RET_SUCCESS;
+}
+void main_process_loop(unsigned int *dev_arr, int arr_size)
+{
+    char *read_input = NULL;
+    char input_req[1024];
+	char input_req_cont[1024];
+	msg_struct msgbuff;
+	int arr_index = 0;
+	int ret;
+
+    while(1)
+    {
+        memset(input_req, 0, sizeof(input_req));
+        read_input = fgets(input_req, sizeof(input_req), stdin);
+        if(NULL == read_input)
+        {
+            egsc_log_user("input error,please retry\n");
+            continue;
+        }
+        if('\n' == input_req[0])
+        {
+            continue;
+        }
+
+        if(strncmp(input_req, "110120", strlen("110120")) == 0)
+        {
+            egsc_log_user("support cmd list: \n");
+            egsc_log_user("    110120\n");
+            egsc_log_user("    30102293573571590001 status {\"deviceID\":\"30102293573571590001\",\"DeviceType\":2009,\"DeviceStatus\":1}\n");
+            egsc_log_user("    30102293573571590001 record {\"deviceID\":\"30102293573571590001\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}\n");
+            egsc_log_user("    30102293573571590001 event {\"EventType\":30301,\"subDeviceID\":\"30102293573571590001\",\"time\":\"2018-11-27 15:21:00\"}\n");
+            egsc_log_user("    30102293573571590001 result {\"DeviceType\":1,\"deviceID\":\"30102293573571590001\",\"ResultList\":[{\"CredenceType\":1,\"CredenceNo\":\"1111\",\"UserID\":\"test1\",\"ErrorCode\":1,\"ErrorMessage\":\"test11\"}]}\n");
+            egsc_log_user("    10052016229357159360 fac_status {\"deviceID\":\"10052016229357159360\",\"workMode\":\"1\",\"State\":1,\"Floor\":1,\"Dicrection\":1}\n");
+            egsc_log_user("    10012020669357159357 elevator_record {\"deviceID\":\"10012020669357159357\",\"RecordType\":10001,\"UserType\":5,\"CredenceType\":0,\"credenceNo\":\"test123\",\"userID\":\"00cf697cf131451285663c425742453b\",\"DestFloor\":[2,3,4,5],\"lightMode\":\"0\",\"opTime\":\"2018-11-27 15:21:00\"}\n");
+            egsc_log_user("    10052016229357159360 fac_ba_status {\"statusList\":[{\"deviceID\":\"10052016229357159360\",\"carID\":1,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1},{\"deviceID\":\"10052016229357159360\",\"carID\":2,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1}],\"timestamp\":\"2018-11-27 15:21:00\"}\n");
+            egsc_log_user("    intercom  {\"CommandType\":1,\"SDP\":\"v=0\"}\n");
+            continue;
+        }
+        memset(input_req_cont, 0, sizeof(input_req_cont));
+        ret = sscanf(input_req, "%[^\n]", input_req_cont);
+        if(1 != ret)
+        {
+            egsc_log_user("input format error ,please retry\n", input_req);
+            continue;
+        }
+		if(strncmp(input_req_cont, "stop", strlen("stop")) == 0||
+			strncmp(input_req_cont, "status", strlen("status")) == 0||
+			strncmp(input_req_cont, "record", strlen("record")) == 0||
+			strncmp(input_req_cont, "event", strlen("event")) == 0||
+			strncmp(input_req_cont, "result", strlen("result")) == 0||
+			strncmp(input_req_cont, "fac_status", strlen("fac_status")) == 0||
+			strncmp(input_req_cont, "elevator_record", strlen("elevator_record")) == 0||
+			strncmp(input_req_cont, "fac_ba_status", strlen("fac_ba_status")) == 0||
+			strncmp(input_req_cont, "intercom", strlen("intercom")) == 0)
+		{
+			for(arr_index=0;arr_index<arr_size;++arr_index){
+				if(!*(dev_arr+arr_index)){
+					break;
+				}
+				unsigned int dev_type = GetDevType(*(dev_arr+arr_index));
+				unsigned int dev_count = GetDevCount(*(dev_arr+arr_index));
+				unsigned int dev_index = 0;
+				egsc_log_info("dev_type:%d dev_count:%d\n",dev_type,dev_count);
+				for(;dev_index<dev_count;++dev_index){
+					msgbuff.msgType = GetMQMsgType(dev_type, dev_index);
+					msgbuff.msgData.devType = dev_type;
+					msgbuff.msgData.offset = dev_index;
+					strcpy(msgbuff.msgData.info,input_req_cont);
+					PutDispatchMQ(msgbuff);
+				}
+			}
+			if(strncmp(input_req_cont, "stop", strlen("stop")) == 0){
+				break;
+			}
+			continue;
+		}
+		egsc_log_user("Invalid cmd [%s]\n",input_req_cont);
+		continue;
+    }
+}
+void Child_process_loop(user_dev_info *user_dev,int dev_offset)
+{
+	int ret;
+	msg_struct msgbuff;
+	msgbuff.msgType = GetMQMsgType(user_dev->dev_info.dev_type,dev_offset);
+	memset(msgbuff.msgData.info, 0, sizeof(msgbuff.msgData.info));
+	while(1)
+    {
+		ret = GetDispatchMQ(msgbuff.msgType,&msgbuff);
+		if(ret >= EGSC_RET_SUCCESS){
+			egsc_log_info("[id:%s] get msg:[type:%d,offset:%d info:%s]\n",user_dev->dev_info.id,msgbuff.msgData.devType,msgbuff.msgData.offset,msgbuff.msgData.info);
+			if(strncmp(msgbuff.msgData.info, "stop", strlen("stop"))==0){
+				egsc_log_info("ready to break\n");
+				break;
+			}
+			memset(msgbuff.msgData.info, 0, sizeof(msgbuff.msgData.info));
+        }
+		else{
+			egsc_platform_sleep(1000);
+		}
+    }
+	egsc_log_info("I'm out\n");
+	ret = DelDispatchMQ(msgbuff.msgType);
 }

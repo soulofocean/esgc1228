@@ -33,20 +33,24 @@ RsvMsgProcResultEnum handleMsg(msg_struct *msgbuff, int *count)
 	*count = 1;
 	return No_Need_Rsp;
 }
-unsigned int CombineInt(unsigned int devType, unsigned int devIndex)
-{
-	return (devType<<DEV_INDEX_OFFSET) + devIndex;
-}
 int Update_Dev_Fork_List(unsigned         int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount)
 {
 	if(arrIndex > DEV_FORK_LIST_MAX_SIZE - 1){
 		egsc_log_error("arrIndex out of range.\n");
 		return EGSC_RET_ERROR;
 	}
-	arr[arrIndex] = CombineInt(devType,devCount);
+	arr[arrIndex] = GetMQMsgType(devType,devCount);
 	return EGSC_RET_SUCCESS;
 }
-long GetMQMsgType(int dev_type,int dev_offset)
+unsigned int GetMQMsgType(int dev_type,int dev_offset)
 {
 	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
+}
+unsigned int GetDevType(unsigned int msg_type)
+{
+	return msg_type>>DEV_INDEX_OFFSET;
+}
+unsigned int GetDevCount(unsigned int msg_type)
+{
+	return msg_type & DEV_OFFSET_OP;
 }

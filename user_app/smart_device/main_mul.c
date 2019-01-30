@@ -8,19 +8,14 @@
 #include "myProtocol.h"
 
 #include "myMQ.h"
-int main_do_V2(msgQueenDataType *myarg)
+#include <signal.h>
+#include <sys/wait.h>
+
+
+int main_do_V2(unsigned int *dev_arr,int arr_size)
 {
-	egsc_log_debug("[main:%d] devType=%d offset=%d\n",getpid(),myarg->devType,myarg->offset);
-	msg_struct msgbuff;
-	msgbuff.msgType = GetMQMsgType(EGSC_TYPE_DOOR_CTRL,0);
-	msgbuff.msgData.devType = EGSC_TYPE_DOOR_CTRL;
-	msgbuff.msgData.offset = 0;
-	strcpy(msgbuff.msgData.info,"stop");
-	PutDispatchNMQ(msgbuff,2);
-	while(1)
-    {
-        egsc_platform_sleep(1000);
-    }
+	egsc_log_debug("[main:%d] arr_size=%d offset=%d\n",getpid(),arr_size);
+	main_process_loop(dev_arr,arr_size);
 	return EGSC_RET_SUCCESS;
 }
 int fork_do_V2(msgQueenDataType *myarg){
@@ -33,6 +28,7 @@ int fork_do_V2(msgQueenDataType *myarg){
 int main(int argc, char * argv [ ])
 {
 	//egsc_log_level = EGSC_LOG_DEBUG;
+	signal(SIGCHLD, SIG_IGN);  
 	int index = 0;
 	EGSC_DEV_TYPE dev_type;
 	int dev_count = 0;
@@ -56,12 +52,12 @@ int main(int argc, char * argv [ ])
 			egsc_log_debug("Quit Fork!\n");
 			break;
 		}
-		dev_type = dev_arr[index]>>DEV_INDEX_OFFSET;
-		dev_count = dev_arr[index] & DEV_OFFSET_OP;
+		dev_type = GetDevType(dev_arr[index]);
+		dev_count = GetDevCount(dev_arr[index]);
 		egsc_log_debug("dev_type=%d dev_count=%d\n",dev_type,dev_count);
 		myarg.devType = dev_type;
 		int dev_index = 0;//不在外面定义有的编译器会有warning
-		for(;dev_index<dev_count;++dev_index){
+		for(dev_index = 0;dev_index<dev_count;++dev_index){
 			myarg.offset = dev_index;
 			fpid = fork();
 			if(fpid<0){
@@ -79,10 +75,11 @@ int main(int argc, char * argv [ ])
 			break;
 	}
 	if(getpid()==main_pid){
-		return main_do_V2(&myarg);
+		ret = main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
+		wait(NULL);
+		return ret;//main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
 	}
 	else{
 		return fork_do_V2(&myarg);
 	}
-	return ret;
 }
