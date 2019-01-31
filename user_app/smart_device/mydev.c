@@ -6619,10 +6619,10 @@ void main_process_loop(unsigned int *dev_arr, int arr_size)
             continue;
         }
 
-        if(strncmp(input_req, "110120", strlen("110120")) == 0)
+        if(strncmp(input_req, "help", strlen("help")) == 0)
         {
             egsc_log_user("support cmd list: \n");
-            egsc_log_user("    110120\n");
+            egsc_log_user("    help\n");
             egsc_log_user("    30102293573571590001 status {\"deviceID\":\"30102293573571590001\",\"DeviceType\":2009,\"DeviceStatus\":1}\n");
             egsc_log_user("    30102293573571590001 record {\"deviceID\":\"30102293573571590001\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}\n");
             egsc_log_user("    30102293573571590001 event {\"EventType\":30301,\"subDeviceID\":\"30102293573571590001\",\"time\":\"2018-11-27 15:21:00\"}\n");
