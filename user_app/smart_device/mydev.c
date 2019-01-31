@@ -92,6 +92,17 @@ static egsc_screen_ctrl_if_tbl s_screen_ctrl_req_if_tbl;
 static int user_certificate_search(struct list_head *head, char *subdevice_id, char *credence_no);
 static int mydev_create_single(user_dev_info *user_dev);
 
+//设备上传消息区域，后续优化为直接从文件读取
+
+const char statusStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"DeviceType\":===DEV_TYPE===,\"DeviceStatus\":1}";
+const char recordStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}";
+const char eventStr[] = "{\"EventType\":30301,\"subDeviceID\":\"===SUB_DEV_ID===\",\"time\":\"2018-11-27 15:21:00\"}";
+const char resultStr[] = "{\"DeviceType\":1,\"deviceID\":\"===SUB_DEV_ID===\",\"ResultList\":[{\"CredenceType\":1,\"CredenceNo\":\"1111\",\"UserID\":\"test1\",\"ErrorCode\":1,\"ErrorMessage\":\"test11\"}]}";
+const char fac_statusStr[] = "{\"deviceID\":\"===DEV_ID===\",\"workMode\":\"1\",\"State\":1,\"Floor\":1,\"Dicrection\":1}";
+const char elevator_recordStr[] = "{\"deviceID\":\"===DEV_ID===\",\"RecordType\":10001,\"UserType\":5,\"CredenceType\":0,\"credenceNo\":\"test123\",\"userID\":\"00cf697cf131451285663c425742453b\",\"DestFloor\":[2,3,4,5],\"lightMode\":\"0\",\"opTime\":\"2018-11-27 15:21:00\"}";
+const char fac_ba_statusStr[] = "{\"statusList\":[{\"deviceID\":\"===DEV_ID===\",\"carID\":1,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1},{\"deviceID\":\"===DEV_ID===\",\"carID\":2,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1}],\"timestamp\":\"2018-11-27 15:21:00\"}";
+const char intercomStr[] = "{\"CommandType\":1,\"SDP\":\"v=0\"}";
+
 //设备参数区域
 /*设置参数*/
 mydev_json_obj s_mydev_params_obj = NULL;
@@ -3875,7 +3886,7 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
-	char buf[MAXBUF+1];
+	/*char buf[MAXBUF+1];
 	bzero(buf, MAXBUF + 1);
 	snprintf(buf,MAXBUF+1,"Server Response ret = %d",ret);
 	int len = send(new_fd, buf, strlen(buf), 0);
@@ -3883,7 +3894,7 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
 		printf("消息:%s\t发送成功，共发送了%d个字节！\n", buf, len);
 	else{
 		printf("消息'%s'发送失败！错误代码是%d，错误信息是'%s'\n",buf, errno, strerror(errno));
-	}
+	}*/
 }
 
 static void mydev_upload_event_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
@@ -4214,6 +4225,7 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
     mydev_json_get_string(record_obj, "userID", user_id, sizeof(user_id));
     mydev_json_get_int(record_obj, "UserType", &user_type);
     mydev_json_get_string(record_obj, "recogniseCaptureImage", recognise_capture_image, sizeof(recognise_capture_image));
+	
     if(EGSC_TYPE_DOOR_CTRL == user_dev->dev_info.dev_type)
     {
         memset(&door_record_param, 0, sizeof(door_record_param));
@@ -4248,7 +4260,7 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
             return EGSC_RET_ERROR;
         }        
     }
-
+	
     if( (strlen(device_id) == 0) ||
         (strlen(record_time) == 0) ||
         (-1 == record_type) ||
@@ -4299,7 +4311,7 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
         egsc_log_user("CredenceType(%d) not valid, skip report.\n", credence_type);
         return EGSC_RET_ERROR;
     }
-
+	
     ret = user_certificate_check_credence_type(&s_mydev_cert_list_head, dev_id, credence_type);
     if(ret < 0)
     {
@@ -4309,7 +4321,6 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
         //egsc_log_user("dev_id(%s) CredenceType(%d) not match, skip report.\n", dev_id, credence_type);
         //return EGSC_RET_ERROR;
     }
-
     if(strlen(user_id) > 0)
     {
         ret = user_certificate_check_user_id(&s_mydev_cert_list_head, dev_id, user_id);
@@ -4322,6 +4333,7 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
             return EGSC_RET_ERROR;
         }
     }
+
 
     if(user_type >= 0)
     {
@@ -4408,7 +4420,6 @@ static EGSC_RET_CODE mydev_upload_record(char *dev_id, char *record)
             }
         }
     }
-
     record_param.record_time = record_time;
     record_param.record_type = record_type;
     record_param.credence_type = credence_type;
@@ -5677,6 +5688,50 @@ static void mydev_socket_test_task_fn(unsigned long arg)
 	char addr[20] = {0};
 	socketServerStart(SOCKET_SERVER_PORT,SOCKET_SERVER_LISNUM, addr);
 }
+
+EGSC_RET_CODE handleUploadInfo(char *input_req_cmd,char *input_req_dev,char *input_req_cont)
+{
+	EGSC_RET_CODE ret;
+	if(strcmp(input_req_cmd, "status") == 0)
+    {
+        ret = mydev_upload_dev_status(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "record") == 0)
+    {
+        ret = mydev_upload_record(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "event") == 0)
+    {
+        ret = mydev_upload_event(input_req_dev, input_req_cont);
+	}
+	else if(strcmp(input_req_cmd, "result") == 0)
+    {
+        ret = mydev_upload_credence_load_result(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "fac_status") == 0)
+    {
+        ret = mydev_upload_fac_dev_status(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "elevator_record") == 0)
+    {
+        ret = mydev_upload_fac_elevator_record(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "fac_ba_status") == 0)
+    {
+        ret = mydev_upload_fac_ba_status(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "intercom") == 0)
+    {
+        ret = mydev_pak_intercom_control(input_req_dev, input_req_cont);
+    }
+    else
+    {
+        egsc_log_user("no found req(%s), skip.\n", input_req_cmd);
+		ret = EGSC_RET_ERROR;
+    }
+	return ret;
+}
+
 static void mydev_input_test_task_fn(unsigned long arg)
 {
     int ret = -1;
@@ -5728,7 +5783,8 @@ static void mydev_input_test_task_fn(unsigned long arg)
         egsc_log_user("get user req dev(%s).\n", input_req_dev);
         egsc_log_user("get user req command(%s).\n", input_req_cmd);
         egsc_log_user("get user req content(%s).\n", input_req_cont);
-        if(strcmp(input_req_cmd, "status") == 0)
+		handleUploadInfo(input_req_cmd,input_req_dev, input_req_cont);
+        /*if(strcmp(input_req_cmd, "status") == 0)
         {
             mydev_upload_dev_status(input_req_dev, input_req_cont);
         }
@@ -5763,7 +5819,7 @@ static void mydev_input_test_task_fn(unsigned long arg)
         else
         {
             egsc_log_user("no found req(%s), skip.\n", input_req_cmd);
-        }
+        }*/
     }
 }
 
@@ -6209,6 +6265,7 @@ int mydev_init_V2()
 {
 	int ret = 0;
     egsc_log_debug("enter\n");
+	INIT_LIST_HEAD(&(s_mydev_cert_list_head));
     INIT_LIST_HEAD(&(s_mydev_dev_list_head));
     ret = user_file_load_device_config();
     if(ret < 0)
@@ -6483,7 +6540,9 @@ int mydev_stop()
 int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
 {
 	int ret;
+	int loop = 0;
 	user_dev_info *user_dev = NULL;
+	egsc_subdev_info *sub_devinfo = NULL;
 	ret = user_dev_get_type(&s_mydev_dev_list_head, dev_type, &user_dev);
     if(user_dev == NULL)
     {
@@ -6491,6 +6550,14 @@ int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
         return ret;
     }
 	ret = genDevIDs(user_dev->dev_info.id, strlen(user_dev->dev_info.id),dev_offset);
+	if(user_dev->dev_info.subdev_count > 0)
+    {
+        for(loop=0; loop<user_dev->dev_info.subdev_count; loop++)
+        {
+            sub_devinfo = user_dev->dev_info.subdev_info+loop;
+            ret = genDevIDs(sub_devinfo->subdev_id.subdev_mac,strlen(user_dev->dev_info.id), dev_offset);
+        }
+    }
 	if(ret != EGSC_RET_SUCCESS){
 		return ret;
 	}
@@ -6608,6 +6675,92 @@ void main_process_loop(unsigned int *dev_arr, int arr_size)
 		continue;
     }
 }
+
+int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
+{
+	char input_req_dev[30] = {0};
+	char input_req_cont[1024] = {0};
+	char sub_dev_id[30] = {0};
+	char dev_id[30] = {0};
+	char tmp_content[1024] = {0};
+	char data[1024]={0};
+	egsc_subdev_id tmp_sub = user_dev->dev_info.subdev_info->subdev_id;
+	egsc_dev_info *tmp_main = &(user_dev->dev_info);
+	sprintf(sub_dev_id,"%04d%s%04d",tmp_sub.subdev_type,tmp_sub.subdev_mac,tmp_sub.subdev_num);
+	sprintf(dev_id,"%04d%04d%s",tmp_main->dev_type,tmp_main->vendor_num,tmp_main->id);
+	egsc_log_info("input_req_cmd = %s\n",input_req_cmd);
+	egsc_log_info("sub_dev_id = %s\n",sub_dev_id);
+	egsc_log_info("dev_id = %s\n",dev_id);
+	EGSC_RET_CODE ret = EGSC_RET_SUCCESS;
+	ret = user_dev_get_type(&s_mydev_dev_list_head, EGSC_TYPE_DOOR_CTRL, &user_dev);
+	if(strcmp(input_req_cmd, "status") == 0)
+    {
+		strcpy(input_req_dev,sub_dev_id);
+		strcpy(data,statusStr);
+		replace_sub_dev_id(tmp_content, data, sub_dev_id);
+		replace_dev_type(input_req_cont, tmp_content, tmp_main->dev_type);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_dev_status(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "record") == 0)
+    {
+		strcpy(input_req_dev,sub_dev_id);
+		strcpy(data,recordStr);
+		replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_record(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "event") == 0)
+    {
+		strcpy(input_req_dev,sub_dev_id);
+		strcpy(data,eventStr);
+		replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_event(input_req_dev, input_req_cont);
+	}
+	else if(strcmp(input_req_cmd, "result") == 0)
+    {
+		strcpy(input_req_dev,sub_dev_id);
+		strcpy(data,resultStr);
+		replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_credence_load_result(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "fac_status") == 0)
+    {
+		strcpy(input_req_dev,dev_id);
+		strcpy(data,fac_statusStr);
+		replace_dev_id(input_req_cont, data, dev_id);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_fac_dev_status(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "elevator_record") == 0)
+    {
+		strcpy(input_req_dev,dev_id);
+		strcpy(data,elevator_recordStr);
+		replace_dev_id(input_req_cont, data, dev_id);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_fac_elevator_record(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "fac_ba_status") == 0)
+    {
+		strcpy(input_req_dev,dev_id);
+		strcpy(data,fac_ba_statusStr);
+		replace_dev_id(input_req_cont, data, dev_id);
+		egsc_log_info("input_req_cont = %s\n",input_req_cont);
+        ret = mydev_upload_fac_ba_status(input_req_dev, input_req_cont);
+    }
+    else if(strcmp(input_req_cmd, "intercom") == 0)
+    {
+        ret = mydev_pak_intercom_control(input_req_dev, input_req_cont);
+    }
+    else
+    {
+        egsc_log_user("no found req(%s), skip.\n", input_req_cmd);
+		ret = EGSC_RET_ERROR;
+    }
+	return ret;
+}
 void Child_process_loop(user_dev_info *user_dev,int dev_offset)
 {
 	int ret;
@@ -6623,6 +6776,7 @@ void Child_process_loop(user_dev_info *user_dev,int dev_offset)
 				egsc_log_info("ready to break\n");
 				break;
 			}
+			processUploadInfo(user_dev,msgbuff.msgData.info);
 			memset(msgbuff.msgData.info, 0, sizeof(msgbuff.msgData.info));
         }
 		else{

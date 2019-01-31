@@ -14,12 +14,12 @@
 
 int main_do_V2(unsigned int *dev_arr,int arr_size)
 {
-	egsc_log_debug("[main:%d] arr_size=%d offset=%d\n",getpid(),arr_size);
+	egsc_log_info("[main:%d] arr_size=%d\n",getpid(),arr_size);
 	main_process_loop(dev_arr,arr_size);
 	return EGSC_RET_SUCCESS;
 }
 int fork_do_V2(msgQueenDataType *myarg){
-	egsc_log_debug("[Child:%d] devType=%d offset=%d\n",getpid(),myarg->devType,myarg->offset);
+	egsc_log_info("[Child:%d] devType=%d offset=%d\n",getpid(),myarg->devType,myarg->offset);
 	int ret;
 	ret = my_dev_single_init(myarg->devType,myarg->offset);
 	return ret;
