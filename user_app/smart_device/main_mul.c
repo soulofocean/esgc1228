@@ -77,9 +77,10 @@ int main(int argc, char * argv [ ])
 	if(getpid()==main_pid){
 		ret = main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
 		wait(NULL);
-		return ret;//main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
+		//main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
 	}
 	else{
-		return fork_do_V2(&myarg);
+		ret = fork_do_V2(&myarg);
 	}
+	return ret;
 }
