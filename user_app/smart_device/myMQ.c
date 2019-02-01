@@ -42,7 +42,7 @@ int Dequeue_MQ(unsigned int mqKey,long msgType,msg_struct *msgbuff, int buffsize
 		egsc_log_error("msgrcv() get msg failed,errno=%d[%s]\n",errno,strerror(errno));
 	}
 	else{
-		egsc_log_info("[ret=%d]:devtype=[%d] offset=[%d] info=[%s]\n",ret,msgbuff->msgData.devType,msgbuff->msgData.offset,msgbuff->msgData.info);
+		egsc_log_info("[id=%d ret=%d]:devtype=[%d] offset=[%d] info=[%s]\n",getpid(),ret,msgbuff->msgData.devType,msgbuff->msgData.offset,msgbuff->msgData.info);
 	}
 	return ret;
 }

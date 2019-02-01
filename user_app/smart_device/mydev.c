@@ -6641,6 +6641,7 @@ void main_process_loop(unsigned int *dev_arr, int arr_size)
             continue;
         }
 		if(strncmp(input_req_cont, "stop", strlen("stop")) == 0||
+			strncmp(input_req_cont, "test", strlen("test")) == 0||
 			strncmp(input_req_cont, "status", strlen("status")) == 0||
 			strncmp(input_req_cont, "record", strlen("record")) == 0||
 			strncmp(input_req_cont, "event", strlen("event")) == 0||
@@ -6753,6 +6754,10 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
     else if(strcmp(input_req_cmd, "intercom") == 0)
     {
         ret = mydev_pak_intercom_control(input_req_dev, input_req_cont);
+    }
+	else if(strcmp(input_req_cmd, "test") == 0)
+    {
+		egsc_log_user("[%s]TEST CMD ONLY\n",dev_id);
     }
     else
     {
