@@ -28,7 +28,7 @@ int fork_do_V2(msgQueenDataType *myarg){
 int main(int argc, char * argv [ ])
 {
 	//egsc_log_level = EGSC_LOG_DEBUG;
-	signal(SIGCHLD, SIG_IGN);  
+	signal(SIGCHLD, SIG_IGN);//和主进程wait(NULL)搭配用  
 	int index = 0;
 	EGSC_DEV_TYPE dev_type;
 	int dev_count = 0;
@@ -76,7 +76,7 @@ int main(int argc, char * argv [ ])
 	}
 	if(getpid()==main_pid){
 		ret = main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
-		wait(NULL);
+		wait(NULL);//和signal(SIGCHLD, SIG_IGN)搭配用
 		//main_do_V2(dev_arr,sizeof(dev_arr)/sizeof(dev_arr[0]));
 	}
 	else{
