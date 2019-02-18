@@ -14,11 +14,17 @@ typedef struct _msgQueenDataType{
 	int devType;
 	char info[MQ_INFO_BUFF];
 }msgQueenDataType;
-
 typedef struct _message_struct{
 	long msgType;
 	msgQueenDataType msgData;
 }msg_struct;
+typedef struct _msgQShortDataType{
+	int statusCode;
+}msgQShortDataType;
+typedef struct _msg_short_struct{
+	long msgType;
+	msgQShortDataType msgData;
+}msg_short_struct;
 typedef enum _ipc_wait_enum{
 	ipc_need_wait = 0,
 	ipc_no_wait = IPC_NOWAIT
