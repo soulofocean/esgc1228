@@ -2326,6 +2326,8 @@ static void mydev_status_callback(int handle, EGSC_DEV_STATUS_CODE status,char *
     egsc_log_user("device(%s) status callback\n", device_id_dst);
     egsc_log_user("status(%d).\n", status);
     egsc_log_user("desc_info(%s).\n", desc_info);
+	int ret = PutSendShortMQ(status);
+	egsc_log_user("device(%s) ret = %d\ns",device_id_dst,ret);
 }
 
 static EGSC_RET_CODE mydev_reset_cb(int handle, char *user_id)
@@ -3886,6 +3888,8 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	int ret2 = PutSendShortMQ(ret);
+	egsc_log_debug("ret2(%d).\n",ret2);
 	/*char buf[MAXBUF+1];
 	bzero(buf, MAXBUF + 1);
 	snprintf(buf,MAXBUF+1,"Server Response ret = %d",ret);
@@ -6273,6 +6277,11 @@ int mydev_init_V2()
         egsc_log_user("load dev conf file failed, please check.\n");
         return ret;
     }
+	int mqid_tmp;
+	ret = create_mq(SOCKET_RSV_MQ_KEY, &mqid_tmp);
+	ret = create_mq(SOCKET_SEND_MQ_KEY, &mqid_tmp);
+	ret = create_mq(SOCKET_SEND_SHORT_MQ_KEY, &mqid_tmp);
+	return ret;
 	/*test code
 	struct list_head *head;
     user_dev_info *pos;
@@ -6588,6 +6597,7 @@ int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
 		egsc_log_user("(id:%s) dev start success.\n", user_dev->dev_info.id);
 	}
 	Child_process_loop(user_dev,dev_offset);
+	sleep(1);//等1秒再结束，为了防止主进程无限等待下去，待验证是否有效
 	egsc_log_info("[id:%s]DelDispatchMQ ret = %d\n",user_dev->dev_info.id,ret);
     ret = mydev_stop();
 	egsc_log_info("[id:%s]mydev_stop ret = %d\n",user_dev->dev_info.id,ret);
@@ -6601,7 +6611,6 @@ void main_process_loop(unsigned int *dev_arr, int arr_size)
     char *read_input = NULL;
     char input_req[1024];
 	char input_req_cont[1024];
-	msg_struct msgbuff;
 	int arr_index = 0;
 	int ret;
 
@@ -6660,11 +6669,7 @@ void main_process_loop(unsigned int *dev_arr, int arr_size)
 				unsigned int dev_index = 0;
 				egsc_log_info("dev_type:%d dev_count:%d\n",dev_type,dev_count);
 				for(;dev_index<dev_count;++dev_index){
-					msgbuff.msgType = GetMQMsgType(dev_type, dev_index);
-					msgbuff.msgData.devType = dev_type;
-					msgbuff.msgData.offset = dev_index;
-					strcpy(msgbuff.msgData.info,input_req_cont);
-					PutDispatchMQ(msgbuff);
+					PutDispatchMQ(dev_type,dev_index,input_req_cont);
 				}
 			}
 			if(strncmp(input_req_cont, "stop", strlen("stop")) == 0){
@@ -6770,24 +6775,278 @@ void Child_process_loop(user_dev_info *user_dev,int dev_offset)
 {
 	int ret;
 	msg_struct msgbuff;
+	int mqid = 0;
 	msgbuff.msgType = GetMQMsgType(user_dev->dev_info.dev_type,dev_offset);
 	memset(msgbuff.msgData.info, 0, sizeof(msgbuff.msgData.info));
-	while(1)
-    {
-		ret = GetDispatchMQ(msgbuff.msgType,&msgbuff);
-		if(ret >= EGSC_RET_SUCCESS){
-			egsc_log_info("[id:%s] get msg:[type:%d,offset:%d info:%s]\n",user_dev->dev_info.id,msgbuff.msgData.devType,msgbuff.msgData.offset,msgbuff.msgData.info);
-			if(strncmp(msgbuff.msgData.info, "stop", strlen("stop"))==0){
-				egsc_log_info("ready to break\n");
-				break;
+	//创建自己的MQ
+	ret = create_mq(GetDispatchMQKey(msgbuff.msgType), &mqid);
+	if(ret>=0){
+		while(1)
+    	{
+			ret = GetDispatchMQ(msgbuff.msgType,&msgbuff);
+			if(ret >= EGSC_RET_SUCCESS){
+				egsc_log_info("[id:%s] get msg:[type:%d,offset:%d info:%s]\n",user_dev->dev_info.id,msgbuff.msgData.devType,msgbuff.msgData.offset,msgbuff.msgData.info);
+				if(strncmp(msgbuff.msgData.info, "dev_stop", strlen("dev_stop"))==0){
+					egsc_log_info("ready to break\n");
+					break;
+				}
+				processUploadInfo(user_dev,msgbuff.msgData.info);
+				memset(msgbuff.msgData.info, 0, sizeof(msgbuff.msgData.info));
+        	}
+			else{
+				egsc_platform_sleep(1000);
 			}
-			processUploadInfo(user_dev,msgbuff.msgData.info);
-			memset(msgbuff.msgData.info, 0, sizeof(msgbuff.msgData.info));
-        }
-		else{
-			egsc_platform_sleep(1000);
-		}
-    }
+    	}
+	}
 	egsc_log_info("I'm out\n");
 	ret = DelDispatchMQ(msgbuff.msgType);
 }
+//验证dev_init [ARR_Index] [DEV_Type] [Number]参数合法性
+int check_dev_init_arg(char (*arg_arr)[ARG_LEN],unsigned int *dev_arr, int dev_arr_count,int used_count,char *str_tmp)
+{
+	int ret = 0;
+	if(used_count!=4){
+		sprintf(str_tmp,"Invalid used_count [%d]",used_count);
+		egsc_log_error("%s\n",str_tmp);
+		ret = -1;
+	}
+	else if(atoi(arg_arr[1])<0||atoi(arg_arr[1])>=DEV_FORK_LIST_MAX_SIZE){
+		sprintf(str_tmp,"Invalid Index [%d](0-%d)",atoi(arg_arr[1]),DEV_FORK_LIST_MAX_SIZE - 1);
+		egsc_log_error("%s\n",str_tmp);
+		ret = -1;
+	}
+	else if(user_check_device_type(atoi(arg_arr[2]))<0){
+		sprintf(str_tmp,"Invalid device type [%d]",atoi(arg_arr[2]));
+		egsc_log_error("%s\n",str_tmp);
+		ret = -1;
+	}
+	else if(atoi(arg_arr[3])<=0 ||atoi(arg_arr[3])>DEV_MAX_COUNT){
+		sprintf(str_tmp,"Invalid device count [%d](1-%d)",atoi(arg_arr[3]),DEV_MAX_COUNT);
+		egsc_log_error("%s\n",str_tmp);
+		ret = -1;
+	}
+	else{
+		int arr_index = 0;
+		int dev_type = 0;
+		for(arr_index=0;arr_index<dev_arr_count;++arr_index)
+		{
+			dev_type = GetDevType(dev_arr[arr_index]);
+			if(dev_type==atoi(arg_arr[2]))
+			{
+				sprintf(str_tmp,"Invalid duplicate dev_type [%d]",atoi(arg_arr[2]));
+				egsc_log_error("%s\n",str_tmp);
+				ret = -1;
+				break;
+			}
+		}
+	}
+	return ret;
+}
+//验证dev_ctl [DEV_Type] [DEV_Index] [CMD] [CMD_ARG]参数正确性
+int check_dev_ctl_arg(char (*arg_arr)[ARG_LEN],unsigned int *dev_arr, int dev_arr_count, int used_count,char *str_tmp)
+{
+	int ret = 0;
+	if(used_count<4){
+		sprintf(str_tmp,"Invalid used_count [%d]",used_count);
+		egsc_log_error("%s\n",str_tmp);
+		ret = -1;
+		return ret;
+	}
+	//二者都是0意思为针对所有的dev,不需要进行此校验
+	if (atoi(arg_arr[1])!=0 && atoi(arg_arr[2])!=0)
+	{
+		int arr_index = 0;
+		int dev_type = 0;
+		int dev_count = 0;
+		int is_match = 0;
+		for(arr_index=0;arr_index<dev_arr_count;++arr_index)
+		{
+			dev_type = GetDevType(dev_arr[arr_index]);
+			dev_count = GetDevCount(dev_arr[arr_index]);
+			if(dev_type==atoi(arg_arr[1]))
+			{
+				is_match = 1;
+				if(atoi(arg_arr[2])>dev_count-1)
+				{
+					is_match = 0;
+					sprintf(str_tmp,"Invalid dev_count [%d](0-%d)",atoi(arg_arr[2]),dev_count-1);
+					break;
+				}
+			}
+		}
+		if(!is_match)
+		{
+			if(strlen(str_tmp)==0)
+			{
+				sprintf(str_tmp,"Invalid match dev_type [%d]",atoi(arg_arr[1]));
+			}
+			ret = -1;
+			return ret;
+		}
+	}
+	//校验命令是否存在
+	if(strncmp(arg_arr[3], "status", strlen("status")) != 0&&
+			strncmp(arg_arr[3], "record", strlen("record")) != 0&&
+			strncmp(arg_arr[3], "event", strlen("event")) != 0&&
+			strncmp(arg_arr[3], "result", strlen("result")) != 0&&
+			strncmp(arg_arr[3], "fac_status", strlen("fac_status")) != 0&&
+			strncmp(arg_arr[3], "elevator_record", strlen("elevator_record")) != 0&&
+			strncmp(arg_arr[3], "fac_ba_status", strlen("fac_ba_status")) != 0&&
+			strncmp(arg_arr[3], "intercom", strlen("intercom")) != 0)
+	{
+		sprintf(str_tmp,"Invalid match cmd [%s]",arg_arr[3]);
+		ret = -1;
+	}
+	return ret;
+}
+//向目标为dest_type和dest_offset的子设备发送buff中的信息
+//如果dest_type和dest_offset都为0则向长度为arr_size的dev_arr中包含的所有设备的MQ发送buff信息
+int dispatch_rcv_msg(unsigned int dest_type,unsigned int dest_offset, unsigned int dev_arr[],int arr_size,char*buff)
+{
+	int arr_index = 0;
+	egsc_log_info("buff=%s\n",buff);
+	if(dest_type == 0 && dest_offset ==0){
+		for(arr_index=0;arr_index<arr_size;++arr_index){
+			if(!*(dev_arr+arr_index)){
+				break;
+			}
+			unsigned int dev_type = GetDevType(*(dev_arr+arr_index));
+			unsigned int dev_count = GetDevCount(*(dev_arr+arr_index));
+			unsigned int dev_index = 0;
+			egsc_log_info("dev_type:%d dev_count:%d\n",dev_type,dev_count);
+			for(;dev_index<dev_count;++dev_index){
+				PutDispatchMQ(dev_type,dev_index,buff);
+			}
+		}
+	}
+	else{
+		PutDispatchMQ(dest_type,dest_offset,buff);
+	}
+	return 0;
+}
+
+int process_loop_msg()
+{
+	int ret;
+	int process_count = 1;
+	msg_struct msgbuff;
+	int main_pid = getpid();
+	RsvMsgProcResultEnum result = SEND_MSG;
+	msgQueenDataType myarg;
+	char arg_arr[ARG_ARR_COUNT][ARG_LEN];
+	char str_tmp[200] = {0};
+	unsigned int dev_arr[DEV_FORK_LIST_MAX_SIZE]={0};
+	int used_count = 0;
+	int isStarted = 0;
+	while(1){//主进程在此循环中执行
+		ret = GetRsvMQ(&msgbuff);
+		memset(str_tmp,0,sizeof(str_tmp));
+		result = SEND_MSG;
+		if(ret < 0){
+			sleep(1);
+			continue;
+		}
+		//dev_init [ARR_Index] [DEV_Type] [Number]
+		//dev_start/dev_stop
+		//dev_ctl [DEV_Type] [DEV_Index] [CMD] (CMD_ARG)
+		ret = split_arg_by_space(msgbuff.msgData.info,arg_arr,ARG_ARR_COUNT,&used_count);
+		if(strcmp(arg_arr[0],"dev_init")==0){
+			egsc_log_info("Process dev_init\n");
+			if(isStarted){
+				strcpy(str_tmp,"dev is Started Please stop first!");
+			}
+			else{
+				ret = check_dev_init_arg(arg_arr,dev_arr,DEV_FORK_LIST_MAX_SIZE,used_count,str_tmp);
+				if(ret == 0)
+				{
+					//验证通过，加入列表
+					ret = Update_Dev_Fork_List(dev_arr, atoi(arg_arr[1]), atoi(arg_arr[2]), atoi(arg_arr[3]));
+					sprintf(str_tmp,"dev_init ret = [%d]",ret);
+				}
+			}
+		}
+		else if(strcmp(arg_arr[0],"dev_start")==0){
+			egsc_log_info("Process dev_start\n");
+			//TODO:Fork 子设备进程
+			if(isStarted){
+				strcpy(str_tmp,"dev is Started Please stop first!");
+			}
+			else{
+				ret = ForkMulDev(dev_arr,&myarg);
+				sprintf(str_tmp,"dev_start ret = [%d]",ret);
+				if(ret<0){
+					isStarted = 0;
+				}
+				else{
+					isStarted = 1;
+				}
+				if(getpid()!=main_pid){
+					//子进程跳出父进程的循环，奔向自己的循环，父进程继续在此循环处理消息
+					break;
+				}
+			}
+		}
+		else if(strcmp(arg_arr[0],"dev_stop")==0){
+			egsc_log_info("Process dev_stop\n");
+			//分发stop消息，让子设备退出
+			dispatch_rcv_msg(0,0,dev_arr,DEV_FORK_LIST_MAX_SIZE,arg_arr[0]);
+			wait(NULL);//和signal(SIGCHLD, SIG_IGN)搭配用,等待其他子进程退出
+			strcpy(str_tmp,"dev_stop success!");
+			egsc_log_info("%s\n",str_tmp);
+			memset(dev_arr,0,sizeof(dev_arr));
+			isStarted = 0;
+		}
+		else if(strcmp(arg_arr[0],"dev_ctl")==0){
+			egsc_log_info("Process dev_ctl\n");
+			//check arg
+			if(!isStarted){
+				strcpy(str_tmp,"dev is stopped Please start it first!");
+			}
+			else{
+				ret = check_dev_ctl_arg(arg_arr,dev_arr,DEV_FORK_LIST_MAX_SIZE,used_count,str_tmp);
+				egsc_log_info("ret=%d\n",ret);
+				if(ret == 0)
+				{
+					//验证通过，向设备发送消息
+					//arg_arr[4]和后面的暂不处理，后续有需要再进行补充
+					ret = dispatch_rcv_msg(atoi(arg_arr[1]),atoi(arg_arr[2]),dev_arr,DEV_FORK_LIST_MAX_SIZE,arg_arr[3]);
+					sprintf(str_tmp,"dev_ctl ret = [%d]",ret);
+				}
+			}
+		}
+		else{
+			sprintf(str_tmp,"Invalid CMD_TYPE [%s]",arg_arr[0]);
+			egsc_log_error("%s\n",str_tmp);
+		}
+		egsc_log_info("result=%d\n",result);
+		switch (result)
+		{
+			case DSP_MSG:
+			{
+				PutDispatchNMQ(msgbuff,process_count);
+				break;
+			}
+			case SEND_MSG:
+			{
+				PutSendMQ(str_tmp);
+				break;
+			}
+			case No_Need_Rsp:
+			default: break;
+		}
+	}
+	if(getpid()!=main_pid){
+		//子进程的初始化和循环
+		//TODO:在回调函数中需要返回状态
+		egsc_log_info("[Child:%d] devType=%d offset=%d\n",getpid(),myarg.devType,myarg.offset);
+		ret = my_dev_single_init(myarg.devType,myarg.offset);
+	}
+	return ret;
+}
+RsvMsgProcResultEnum handleMsg(msg_struct *msgbuff, int *count)
+{
+	//TODO
+	*count = 1;
+	return SEND_MSG;
+}
+

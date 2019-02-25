@@ -7,19 +7,53 @@
 #include<string.h>
 #include "myMQ.h"
 #include "egsc_util.h"
-
-int Enqueue_MQ(unsigned int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
+unsigned int GetMQMsgType(int dev_type,int dev_offset)
 {
-	int ret;
-	int msqid;
-	msqid = msgget(mqKey,IPC_EXCL);  /*检查消息队列是否存在*/    
+	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
+}
+unsigned int GetDevType(unsigned int msg_type)
+{
+	return msg_type>>DEV_INDEX_OFFSET;
+}
+unsigned int GetDevCount(unsigned int msg_type)
+{
+	return msg_type & DEV_OFFSET_OP;
+}
+int create_mq(unsigned int mqKey,int *mqid_out)
+{
+	int ret = 0;
+	int msqid = msgget(mqKey,IPC_EXCL);  /*检查消息队列是否存在*/    
 	if(msqid < 0){      
 		msqid = msgget(mqKey,IPC_CREAT|0666);/*创建消息队列*/
 		if(msqid <0){
 			egsc_log_error("failed to create msq | errno=%d [%s]\n",errno,strerror(errno));     
-			return -1;
+			ret = -1;
 		}
 	}
+	*mqid_out = msqid;
+	return ret;
+}
+int Enqueue_MQ(unsigned int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
+{
+	int ret;
+	int msqid;
+	ret = create_mq(mqKey,&msqid);
+	if(ret < 0)
+		return ret;
+	ret = msgsnd(msqid,&msgs,msgsize,enqueue_type);
+	if(ret < 0){
+		egsc_log_error("msgsnd() write msg failed,ret=%d,errno=%d[%s]\n",ret,errno,strerror(errno));
+	}
+	egsc_log_info("[%d]enqueue MQ[key=%u]complete! info=[%s]\n",getpid(),mqKey,msgs.msgData.info);
+	return ret;
+}
+int Enqueue_MQ_Short(unsigned int mqKey,msg_short_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
+{
+	int ret;
+	int msqid;
+	ret = create_mq(mqKey,&msqid);
+	if(ret < 0)
+		return ret;
 	ret = msgsnd(msqid,&msgs,msgsize,enqueue_type);
 	if(ret < 0){
 		egsc_log_error("msgsnd() write msg failed,ret=%d,errno=%d[%s]\n",ret,errno,strerror(errno));
@@ -42,10 +76,29 @@ int Dequeue_MQ(unsigned int mqKey,long msgType,msg_struct *msgbuff, int buffsize
 		egsc_log_error("msgrcv() get msg failed,errno=%d[%s]\n",errno,strerror(errno));
 	}
 	else{
-		egsc_log_info("[id=%d ret=%d]:devtype=[%d] offset=[%d] info=[%s]\n",getpid(),ret,msgbuff->msgData.devType,msgbuff->msgData.offset,msgbuff->msgData.info);
+		egsc_log_info("[dequeue key=%u ret=%d]:devtype=[%d] offset=[%d] info=[%s]\n",mqKey,ret,msgbuff->msgData.devType,msgbuff->msgData.offset,msgbuff->msgData.info);
 	}
 	return ret;
 }
+int Dequeue_MQ_Short(unsigned int mqKey,long msgType,msg_short_struct *msgbuff, int buffsize,IPC_WAIT_ENUM dequeue_type)
+{
+	int msgid;
+	int ret = 0;
+	msgid=msgget(mqKey,IPC_EXCL);
+	if(msgid<0){
+		egsc_log_debug("get msgid fail! mqkey = %d errno=%d[%s]",mqKey,errno,strerror(errno));
+		return -1;
+	}
+	ret = msgrcv(msgid,msgbuff,buffsize,msgType,dequeue_type);
+	if(ret < 0){
+		egsc_log_error("msgrcv() get msg failed,errno=%d[%s]\n",errno,strerror(errno));
+	}
+	else{
+		egsc_log_info("[dequeue key=%u ret=%d]:statusCode=[%d]\n",mqKey,ret,msgbuff->msgData.statusCode);
+	}
+	return ret;
+}
+
 int Delete_MQ(unsigned int mqKey)
 {
 	int msgid;
@@ -72,12 +125,29 @@ int PutRsvMQ(msg_struct msgs)
 {
 	return Enqueue_MQ(SOCKET_RSV_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
-int PutSendMQ(msg_struct msgs)
+int PutSendMQ(char * info)
 {
+	msg_struct msgs;
+	msgs.msgType = SOCKET_SEND_MSG_TYPE;
+	strncpy(msgs.msgData.info,info,sizeof(msgs.msgData.info));
 	return Enqueue_MQ(SOCKET_SEND_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
-int PutDispatchMQ(msg_struct msgs)
+int PutSendShortMQ(int status_code)
 {
+	msg_short_struct msgs;
+	//msgs.msgType = GetMQMsgType(dev_type, dev_index);
+	msgs.msgType = SOCKET_SEND_MSG_TYPE;
+	msgs.msgData.statusCode = status_code;
+	return Enqueue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, msgs, MQ_SEND_BUFF_SHORT, ipc_no_wait);
+}
+
+int PutDispatchMQ(int dev_type,int dev_index,char* info)
+{
+	msg_struct msgs;
+	msgs.msgType = GetMQMsgType(dev_type, dev_index);
+	msgs.msgData.devType = dev_type;
+	msgs.msgData.offset = dev_index;
+	strncpy(msgs.msgData.info,info,sizeof(msgs.msgData.info));
 	return Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
 int PutDispatchNMQ(msg_struct msgs,int put_count)
@@ -104,6 +174,11 @@ int GetSendMQ(msg_struct *msgbuff)
 {
 	return Dequeue_MQ(SOCKET_SEND_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
 }
+int GetSendShortMQ(msg_short_struct *msgbuff)
+{
+	return Dequeue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF_SHORT, ipc_need_wait);
+}
+
 int GetDispatchMQ(long msgType,msg_struct *msgbuff)
 {
 	return Dequeue_MQ(GetDispatchMQKey(msgType), 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);

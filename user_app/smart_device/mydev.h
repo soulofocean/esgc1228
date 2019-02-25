@@ -5,6 +5,8 @@
 #include <egsc_util.h>
 #include <egsc_platform.h>
 #include "mydev_list.h"
+#include "myMQ.h"
+#include "myProtocol.h"
 
 #define egsc_log_user(fmt, args...)  egsc_log_print(EGSC_LOG_INFO,"[EGSC] "fmt, ##args)
 
@@ -227,5 +229,7 @@ int mydev_stop();
 int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset);
 void main_process_loop(unsigned int *dev_arr, int arr_size);
 void Child_process_loop(user_dev_info *user_dev,int dev_offset);
+int process_loop_msg();
+RsvMsgProcResultEnum handleMsg(msg_struct *msgbuff, int *count);
 #endif
 

@@ -16,6 +16,8 @@
 #include "myMQ.h"
 
 static int socket_new_fd;
+
+
 int socketServerInit(unsigned int myport, unsigned int lisnum, char * serveraddr,int *socketID)
 {
 	int sockfd; 
@@ -142,15 +144,42 @@ int socketServerLoopSend()
 	char buf[MQ_INFO_BUFF] = {0};
 	while(1){
 		ret = Dequeue_MQ(SOCKET_SEND_MQ_KEY, 0, &msgs_out,MQ_RSV_BUFF,ipc_need_wait);
-		if(ret<0)
+		if(ret<0){
+			egsc_log_error("socketServerLoopSend dequeue failed!\n");
 			sleep(SOCKET_SEND_SLEEP_SEC);
 			continue;
+		}
 		strncpy(buf,msgs_out.msgData.info,strlen(msgs_out.msgData.info)+1);
 		len = send(socket_new_fd, buf, strlen(buf), 0);
 		if (len > 0)
-			egsc_log_debug("msg:%s\tsend success，len = %d bytes！\n", buf, len);
+			egsc_log_info("msg:%s\tsend success，len = %d bytes！\n", buf, len);
 		else{
-			printf("msg'%s'send fail！error=%d，errinfo='%s'\n",buf, errno, strerror(errno));
+			egsc_log_info("msg'%s'send fail！error=%d，errinfo='%s'\n",buf, errno, strerror(errno));
+			sleep(SOCKET_SEND_SLEEP_SEC);
+			continue;
+		} 
+	}
+	return 0;
+}
+int socketServerLoopSendShort()
+{
+	msg_short_struct msgs_out;
+	socklen_t len;
+	int ret;
+	char buf[MQ_INFO_BUFF] = {0};
+	while(1){
+		ret = Dequeue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, 0, &msgs_out,MQ_RSV_BUFF_SHORT,ipc_need_wait);
+		if(ret<0){
+			egsc_log_error("socketServerLoopSendShort dequeue failed!\n");
+			sleep(SOCKET_SEND_SLEEP_SEC);
+			continue;
+		}
+		sprintf(buf,"status code:%d",msgs_out.msgData.statusCode);
+		len = send(socket_new_fd, buf, strlen(buf), 0);
+		if (len > 0)
+			egsc_log_info("msg:%s\tsend success，len = %d bytes！\n", buf, len);
+		else{
+			egsc_log_info("msg'%s'send fail！error=%d，errinfo='%s'\n",buf, errno, strerror(errno));
 			sleep(SOCKET_SEND_SLEEP_SEC);
 			continue;
 		} 
