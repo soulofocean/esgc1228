@@ -52,7 +52,7 @@ void socket_send_short_fn(unsigned long arg)
 int main(int argc, char * argv [ ])
 {
 	egsc_log_level = EGSC_LOG_DEBUG;
-	signal(SIGCHLD, SIG_IGN);//和主进程wait(NULL)搭配用
+	//signal(SIGCHLD, SIG_IGN);//和主进程wait(NULL)选着搭配用防止僵尸进程，貌似也可以去掉因为后面wait了
 	signal(SIGPIPE, SIG_IGN);//Socket的异常断开处理忽略
 	EGSC_RET_CODE ret = EGSC_RET_ERROR;
 	int arg = 0;
