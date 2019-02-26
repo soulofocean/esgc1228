@@ -40,7 +40,8 @@ typedef struct _egsc_subdev_info
 typedef struct _egsc_dev_info
 {
     char srv_addr[64];                  // 服务器地址，格式示例："192.168.1.1:12000" 或 "egsc.evergrande.com:12000"
-    char ip[32];                        // 用户IP配置
+    //64bit标准SDK暂时不可用
+    //char ip[32];                        // 用户IP配置
     int encrpyt_enable;                 // 服务器通信是否为加密方式
     EGSC_DEV_TYPE dev_type;             // 设备类型
     EGSC_VENDOR_NUMBER vendor_num;      // 厂商编号
