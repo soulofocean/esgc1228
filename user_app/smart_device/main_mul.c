@@ -53,6 +53,7 @@ int main(int argc, char * argv [ ])
 {
 	egsc_log_level = EGSC_LOG_DEBUG;
 	signal(SIGCHLD, SIG_IGN);//和主进程wait(NULL)搭配用
+	signal(SIGPIPE, SIG_IGN);//Socket的异常断开处理忽略
 	EGSC_RET_CODE ret = EGSC_RET_ERROR;
 	int arg = 0;
 	//初始化设备配置文件

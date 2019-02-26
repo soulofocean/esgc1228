@@ -6853,8 +6853,9 @@ int check_dev_ctl_arg(char (*arg_arr)[ARG_LEN],unsigned int *dev_arr, int dev_ar
 		ret = -1;
 		return ret;
 	}
-	//二者都是0意思为针对所有的dev,不需要进行此校验
-	if (atoi(arg_arr[1])!=0 && atoi(arg_arr[2])!=0)
+	//第一个参数0意思为针对所有的dev,此时第二个参数无效可以为任意值，不需要进行此校验
+	//第二个参数为0意思为针对此Type的所有dev
+	if (atoi(arg_arr[1])!=0)
 	{
 		int arr_index = 0;
 		int dev_type = 0;
@@ -6867,10 +6868,10 @@ int check_dev_ctl_arg(char (*arg_arr)[ARG_LEN],unsigned int *dev_arr, int dev_ar
 			if(dev_type==atoi(arg_arr[1]))
 			{
 				is_match = 1;
-				if(atoi(arg_arr[2])>dev_count-1)
+				if(atoi(arg_arr[2])>dev_count || atoi(arg_arr[2])<0)
 				{
 					is_match = 0;
-					sprintf(str_tmp,"Invalid dev_count [%d](0-%d)",atoi(arg_arr[2]),dev_count-1);
+					sprintf(str_tmp,"Invalid dev_count [%d](0-%d)",atoi(arg_arr[2]),dev_count);
 					break;
 				}
 			}
@@ -6900,13 +6901,14 @@ int check_dev_ctl_arg(char (*arg_arr)[ARG_LEN],unsigned int *dev_arr, int dev_ar
 	}
 	return ret;
 }
-//向目标为dest_type和dest_offset的子设备发送buff中的信息
-//如果dest_type和dest_offset都为0则向长度为arr_size的dev_arr中包含的所有设备的MQ发送buff信息
+//向目标为dest_type和dest_offset-1的子设备发送buff中的信息
+//如果dest_type为0则向长度为arr_size的dev_arr中包含的所有设备的MQ发送buff信息
+//如果dest_type不为0而dest_offset为0则向dev_arr中Type为dest_type的所有设备的MQ发送buff消息
 int dispatch_rcv_msg(unsigned int dest_type,unsigned int dest_offset, unsigned int dev_arr[],int arr_size,char*buff)
 {
 	int arr_index = 0;
 	egsc_log_info("buff=%s\n",buff);
-	if(dest_type == 0 && dest_offset ==0){
+	if(dest_type == 0 || dest_offset ==0){
 		for(arr_index=0;arr_index<arr_size;++arr_index){
 			if(!*(dev_arr+arr_index)){
 				break;
@@ -6916,12 +6918,14 @@ int dispatch_rcv_msg(unsigned int dest_type,unsigned int dest_offset, unsigned i
 			unsigned int dev_index = 0;
 			egsc_log_info("dev_type:%d dev_count:%d\n",dev_type,dev_count);
 			for(;dev_index<dev_count;++dev_index){
-				PutDispatchMQ(dev_type,dev_index,buff);
+				if(dest_type==0||dest_type==dev_type){
+					PutDispatchMQ(dev_type,dev_index,buff);
+				}
 			}
 		}
 	}
 	else{
-		PutDispatchMQ(dest_type,dest_offset,buff);
+		PutDispatchMQ(dest_type,dest_offset-1,buff);
 	}
 	return 0;
 }
@@ -6992,10 +6996,10 @@ int process_loop_msg()
 			//分发stop消息，让子设备退出
 			dispatch_rcv_msg(0,0,dev_arr,DEV_FORK_LIST_MAX_SIZE,arg_arr[0]);
 			wait(NULL);//和signal(SIGCHLD, SIG_IGN)搭配用,等待其他子进程退出
-			strcpy(str_tmp,"dev_stop success!");
-			egsc_log_info("%s\n",str_tmp);
 			memset(dev_arr,0,sizeof(dev_arr));
 			isStarted = 0;
+			strcpy(str_tmp,"dev_stop success!");
+			egsc_log_info("%s\n",str_tmp);
 		}
 		else if(strcmp(arg_arr[0],"dev_ctl")==0){
 			egsc_log_info("Process dev_ctl\n");

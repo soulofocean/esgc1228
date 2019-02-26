@@ -143,6 +143,7 @@ int PutSendShortMQ(int status_code)
 
 int PutDispatchMQ(int dev_type,int dev_index,char* info)
 {
+	egsc_log_debug("Enter PutDispatchMQ dev_type=[%d] dev_index=[%d] info=[%s]\n",dev_type,dev_index,info);
 	msg_struct msgs;
 	msgs.msgType = GetMQMsgType(dev_type, dev_index);
 	msgs.msgData.devType = dev_type;
