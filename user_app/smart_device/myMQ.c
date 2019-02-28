@@ -26,11 +26,12 @@ int create_mq(unsigned int mqKey,int *mqid_out)
 	if(msqid < 0){      
 		msqid = msgget(mqKey,IPC_CREAT|0666);/*创建消息队列*/
 		if(msqid <0){
-			egsc_log_error("failed to create msq | errno=%d [%s]\n",errno,strerror(errno));     
+			egsc_log_error("failed to create mq key=[%u] | errno=%d [%s]\n",mqKey,errno,strerror(errno));     
 			ret = -1;
 		}
 	}
 	*mqid_out = msqid;
+	egsc_log_debug("create_mq mqkey[%u] msqid[%d] ret=%d\n",mqKey,msqid,ret);
 	return ret;
 }
 int Enqueue_MQ(unsigned int mqKey,msg_struct msgs,int msgsize,IPC_WAIT_ENUM enqueue_type)
@@ -58,7 +59,7 @@ int Enqueue_MQ_Short(unsigned int mqKey,msg_short_struct msgs,int msgsize,IPC_WA
 	if(ret < 0){
 		egsc_log_error("msgsnd() write msg failed,ret=%d,errno=%d[%s]\n",ret,errno,strerror(errno));
 	}
-	egsc_log_info("[%d]enqueue MQ[key=%u]complete!\n",getpid(),mqKey);
+	egsc_log_info("[%d]enqueue MQ[key=%u]complete! status code=[%d]\n",getpid(),mqKey,msgs.msgData.statusCode);
 	return ret;
 }
 
