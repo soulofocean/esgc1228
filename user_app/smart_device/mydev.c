@@ -102,6 +102,7 @@ const char fac_statusStr[] = "{\"deviceID\":\"===DEV_ID===\",\"workMode\":\"1\",
 const char elevator_recordStr[] = "{\"deviceID\":\"===DEV_ID===\",\"RecordType\":10001,\"UserType\":5,\"CredenceType\":0,\"credenceNo\":\"test123\",\"userID\":\"00cf697cf131451285663c425742453b\",\"DestFloor\":[2,3,4,5],\"lightMode\":\"0\",\"opTime\":\"2018-11-27 15:21:00\"}";
 const char fac_ba_statusStr[] = "{\"statusList\":[{\"deviceID\":\"===DEV_ID===\",\"carID\":1,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1},{\"deviceID\":\"===DEV_ID===\",\"carID\":2,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1}],\"timestamp\":\"2018-11-27 15:21:00\"}";
 const char intercomStr[] = "{\"CommandType\":1,\"SDP\":\"v=0\"}";
+const char parking_ctl_record_str[] = "{\"deviceID\":\"===DEV_ID===\",\"recordTime\":\"===SYSTEM_TIME===\",\"RecordType\":===REC_TYPE===,\"CredenceType\":===CRE_TYPE===,\"gateOpenMode\":2,\"credenceNo\":\"===CRE_NO===\",\"DeviceEntryType\":===ENTRY_TYPE===,\"recogniseCaptureImage\":[\"SDK_TEST.jpg\"]}";
 
 //设备参数区域
 /*设置参数*/
@@ -1501,6 +1502,7 @@ static int user_file_load_device_config()
     }
     egsc_platform_free(param_buff);
 
+	int fatal_error = 0;
     mydev_json_get_array_size(s_device_config_obj, &array_size);
     for(array_index=0;array_index<array_size;array_index++)
     {
@@ -1549,7 +1551,9 @@ static int user_file_load_device_config()
             {
                 egsc_platform_free(user_dev);
                 user_dev = NULL;
-                continue;
+				fatal_error = 1;//有错误就退出，后续有需要在此修改
+				break;
+                //continue;
             }
             subdev_array_obj = mydev_json_get_object(dev_item_obj, "subdev");
             if(NULL != subdev_array_obj)
@@ -1596,7 +1600,9 @@ static int user_file_load_device_config()
                                 {
                                     egsc_platform_free(user_dev->dev_info.subdev_info);
                                     user_dev->dev_info.subdev_info = NULL;
-                                    continue;
+									fatal_error = 1;//有错误就退出，后续有需要在此修改
+									break;
+									//continue;
                                 }
                                 else
                                 {
@@ -1605,6 +1611,10 @@ static int user_file_load_device_config()
                             }
                         }
                         user_dev->dev_info.subdev_count = valid_subdev_cnt;
+						if(fatal_error)
+						{
+							break;//有错误就退出，后续有需要在此修改
+						}
                     }
                     else
                     {
@@ -1619,6 +1629,12 @@ static int user_file_load_device_config()
     }
 
     fclose(fd_conf);
+
+	if(fatal_error)
+	{
+		egsc_log_user("fatal_error detected, breake parse device config!\n");
+		return EGSC_RET_ERROR;
+	}
 
     if(valid_dev_cnt<=0)
     {
@@ -6365,6 +6381,7 @@ int mydev_uninit()
 
 static int mydev_create_single(user_dev_info *user_dev)
 {
+	egsc_log_debug("enter.\n");
     int ret = 0;
     int get_len = 0;
     int srv_req_cb_len = 0;
@@ -6449,13 +6466,28 @@ static int mydev_create_single(user_dev_info *user_dev)
             break;
         }
     }
+	egsc_log_debug("Subdev_Count=[%d]\n",user_dev->dev_info.subdev_count);
+	int loop = 0;
+	int subdev_cnt = user_dev->dev_info.subdev_count;
+	egsc_subdev_info *subdev_info;
+	if(NULL != user_dev->dev_info.subdev_info)
+    {
+		for(loop=0;loop<subdev_cnt;loop++)
+		{
+			subdev_info = user_dev->dev_info.subdev_info + loop;
+			egsc_log_debug("sub_id=[%d%s%04s]\n",subdev_info->subdev_id.subdev_type,subdev_info->subdev_id.subdev_mac,subdev_info->subdev_id.subdev_num);
+		}
+	}
+	else
+	{
+		egsc_log_debug("SUBDEV is NULL!\n");
+	}
     ret = egsc_dev_create(&user_dev->dev_info, (egsc_dev_status_callback)user_dev->status_cb_func, &user_dev->dev_handle);
     if(ret != EGSC_RET_SUCCESS)
     {
-        egsc_log_error("(id:%s) egsc_dev_create failed.\n", user_dev->dev_info.id);
+        egsc_log_error("(sub_id:%s) egsc_dev_create failed.\n", user_dev->dev_info.id);
         return ret;
     }
-
     ret = egsc_dev_func_register(user_dev->dev_handle, user_dev->srv_req_cb_tbl, srv_req_cb_len,
                                     user_dev->dev_req_if_tbl, dev_req_if_len, &get_len);
     if(ret != EGSC_RET_SUCCESS || get_len != dev_req_if_len)
@@ -6682,7 +6714,14 @@ void main_process_loop(unsigned int *dev_arr, int arr_size)
 		continue;
     }
 }
-
+int init_arg_arr(char (*arg_arr)[ARG_LEN],int arg_count)
+{
+	int index;
+	for(index = 0;index < arg_count;index++){
+		memset(arg_arr[index],0,ARG_LEN);
+	}
+	return 0;
+}
 int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 {
 	char input_req_dev[30] = {0};
@@ -6700,6 +6739,14 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 	egsc_log_info("dev_id = %s\n",dev_id);
 	EGSC_RET_CODE ret = EGSC_RET_SUCCESS;
 	ret = user_dev_get_type(&s_mydev_dev_list_head, EGSC_TYPE_DOOR_CTRL, &user_dev);
+	//对带参数的命令进行参数拆分
+	char arg_arr[ARG_ARR_COUNT][ARG_LEN];
+	int used_count;
+	ret = init_arg_arr(arg_arr, ARG_ARR_COUNT);
+	split_arg_by_space(input_req_cmd, arg_arr, ARG_ARR_COUNT, &used_count);
+	//为了兼容下面代码，将原命令拷贝回来
+	memset(input_req_cmd,0,MQ_INFO_BUFF);
+	strcpy(input_req_cmd,arg_arr[0]);
 	if(strcmp(input_req_cmd, "status") == 0)
     {
 		strcpy(input_req_dev,sub_dev_id);
@@ -6711,9 +6758,35 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
     }
     else if(strcmp(input_req_cmd, "record") == 0)
     {
-		strcpy(input_req_dev,sub_dev_id);
-		strcpy(data,recordStr);
-		replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		if(user_dev->dev_info.dev_type == EGSC_TYPE_DOOR_CTRL)
+		{
+			strcpy(data,recordStr);
+			strcpy(input_req_dev,sub_dev_id);
+			replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		}
+		else if(user_dev->dev_info.dev_type == EGSC_TYPE_PARKING_CTRL)
+		{
+			//record [RecordType] [CredenceType] [CredenceNO] [DeviceEntryType]
+			//record 10002 5 粤B44944 1
+			strcpy(data,parking_ctl_record_str);
+			strcpy(input_req_dev,dev_id);
+			replace_dev_id(tmp_content, data, dev_id);
+			strcpy(data,tmp_content);
+			replace_system_time(tmp_content, data);
+			strcpy(data,tmp_content);
+			replace_record_type(tmp_content, data,atoi(arg_arr[1]));
+			strcpy(data,tmp_content);
+			replace_credence_type(tmp_content, data,atoi(arg_arr[2]));
+			strcpy(data,tmp_content);
+			replace_credence_no(tmp_content, data,arg_arr[3]);
+			strcpy(data,tmp_content);
+			replace_entry_type(input_req_cont, data,atoi(arg_arr[4]));
+		}
+		else
+		{
+			egsc_log_error("Not support dev type [%d] in [record] cmd\n",user_dev->dev_info.dev_type);
+			return EGSC_RET_NO_SURPORT;
+		}
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_record(input_req_dev, input_req_cont);
     }
@@ -6774,6 +6847,7 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 }
 void Child_process_loop(user_dev_info *user_dev,int dev_offset)
 {
+	egsc_log_debug("Enter.\n");
 	int ret;
 	msg_struct msgbuff;
 	int mqid = 0;
@@ -6943,6 +7017,9 @@ int process_loop_msg()
 	unsigned int dev_arr[DEV_FORK_LIST_MAX_SIZE]={0};
 	int used_count = 0;
 	int isStarted = 0;
+	//目前dev_ctl [DEV_Type] [DEV_Index] [CMD] (CMD_ARG)最长为5个
+	int arg_current_len = 4;
+	ret = init_arg_arr(arg_arr,ARG_ARR_COUNT);
 	while(1){//主进程在此循环中执行
 		ret = GetRsvMQ(&msgbuff);
 		memset(str_tmp,0,sizeof(str_tmp));
@@ -6954,7 +7031,7 @@ int process_loop_msg()
 		//dev_init [ARR_Index] [DEV_Type] [Number]
 		//dev_start/dev_stop
 		//dev_ctl [DEV_Type] [DEV_Index] [CMD] (CMD_ARG)
-		ret = split_arg_by_space(msgbuff.msgData.info,arg_arr,ARG_ARR_COUNT,&used_count);
+		ret = split_arg_by_space(msgbuff.msgData.info,arg_arr,arg_current_len,&used_count);
 		if(strcmp(arg_arr[0],"dev_init")==0){
 			egsc_log_info("Process dev_init\n");
 			if(isStarted){
@@ -6997,6 +7074,7 @@ int process_loop_msg()
 			dispatch_rcv_msg(0,0,dev_arr,DEV_FORK_LIST_MAX_SIZE,arg_arr[0]);
 			wait(NULL);//和signal(SIGCHLD, SIG_IGN)搭配用,等待其他子进程退出
 			memset(dev_arr,0,sizeof(dev_arr));
+			ret = init_arg_arr(arg_arr,ARG_ARR_COUNT);
 			isStarted = 0;
 			strcpy(str_tmp,"dev_stop success!");
 			egsc_log_info("%s\n",str_tmp);

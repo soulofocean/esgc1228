@@ -5,11 +5,19 @@
 #include "myProtocol.h"
 #include "myMQ.h"
 #include "egsc_util.h"
+#include <time.h>
 
+const char sysTimeFlag[] = "===SYSTEM_TIME===";
 const char devTypeFlag[] = "===DEV_TYPE===";
 const char subDevTypeFlag[] = "===SUB_DEV_TYPE===";
 const char devIdFlag[] = "===DEV_ID===";
 const char subDevIDFlag[] = "===SUB_DEV_ID===";
+const char recordTypeFlag[] = "===REC_TYPE===";
+const char credenceTypeFlag[] = "===CRE_TYPE===";
+const char credenceNoFlag[] = "===CRE_NO===";
+const char entryTypeFlag[] = "===ENTRY_TYPE===";
+
+
 int Update_Dev_Fork_List(unsigned         int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount)
 {
 	if(arrIndex > DEV_FORK_LIST_MAX_SIZE - 1){
@@ -23,7 +31,7 @@ int my_itoa(int intValue,char *outStr,int str_len)
 {
 	return snprintf(outStr,str_len,"%d",intValue);
 }
-/*将字符串source中的s1子串替换为s2字串*/
+/*将字符串source中的oldStr子串替换为destStr字串,存放在result中*/
 int replace_string(char *result, char *source, const char* oldStr, char *destStr)
 {
     char *q=NULL;
@@ -42,6 +50,18 @@ int replace_string(char *result, char *source, const char* oldStr, char *destStr
     strcpy(result, p);   
 	return 0;
 }
+int replace_system_time(char *result,char *source)
+{
+	char now[100] = {0};
+	time_t nowtim;
+	struct tm *tm_now ;
+	time(&nowtim) ;
+	tm_now = localtime(&nowtim) ;		
+	sprintf(now, "%.4d-%.2d-%.2d %.2d:%.2d:%.2d",
+		tm_now->tm_year+1900, tm_now->tm_mon+1,tm_now->tm_mday, tm_now->tm_hour, 
+		tm_now->tm_min, tm_now->tm_sec);
+	return replace_string(result, source, sysTimeFlag, now);
+}
 int replace_dev_id(char *result,char *source, char *dev_id)
 {
 	return replace_string(result, source, devIdFlag, dev_id);
@@ -52,15 +72,37 @@ int replace_sub_dev_id(char *result,char *source, char *sub_dev_id)
 }
 int replace_dev_type(char *result,char *source, int dev_type)
 {
-	char tmp[20] = {0};
-	my_itoa(dev_type, tmp, 20);
+	char tmp[11] = {0};
+	my_itoa(dev_type, tmp, sizeof(tmp));
 	return replace_string(result, source, devTypeFlag, tmp);
 }
 int replace_sub_dev_type(char *result,char *source, int sub_dev_type)
 {
-	char tmp[20] = {0};
-	my_itoa(sub_dev_type, tmp, 20);
+	char tmp[11] = {0};
+	my_itoa(sub_dev_type, tmp, sizeof(tmp));
 	return replace_string(result, source, subDevTypeFlag, tmp);
+}
+int replace_record_type(char *result,char *source, int record_type)
+{
+	char tmp[11] = {0};
+	my_itoa(record_type, tmp, sizeof(tmp));
+	return replace_string(result, source, recordTypeFlag, tmp);
+}
+int replace_credence_type(char *result,char *source, int credence_type)
+{
+	char tmp[11] = {0};
+	my_itoa(credence_type, tmp, sizeof(tmp));
+	return replace_string(result, source, credenceTypeFlag, tmp);
+}
+int replace_credence_no(char *result,char *source, char *credence_no)
+{
+	return replace_string(result, source, credenceNoFlag, credence_no);
+}
+int replace_entry_type(char *result,char *source, int entry_type)
+{
+	char tmp[11] = {0};
+	my_itoa(entry_type, tmp, sizeof(tmp));
+	return replace_string(result, source, entryTypeFlag, tmp);
 }
 int ForkMulDev(unsigned int dev_arr[],msgQueenDataType *myarg)
 {
@@ -101,7 +143,8 @@ int ForkMulDev(unsigned int dev_arr[],msgQueenDataType *myarg)
 int split_arg_by_space(char *source_arg,char (*result)[ARG_LEN],int arg_count,int *used_count)
 {
 	int ret = 0;
-	int max_len = arg_count*ARG_LEN+arg_count-1;
+	//计算理论上空格加上参数的总长度,arg_count意为最大拆分的长度，目前按照dev_ctl 0 0 record arg最长5个
+	int max_len = ARG_ARR_COUNT*ARG_LEN+arg_count-1;
 	*used_count = 0;
 	if(strlen(source_arg)>max_len){
 		egsc_log_error("source_arg too long[len=%d]\n",strlen(source_arg));
@@ -121,7 +164,10 @@ int split_arg_by_space(char *source_arg,char (*result)[ARG_LEN],int arg_count,in
 		}
 		(*used_count)++;
 		strcpy(tmp,result[arg_index+1]);
-		egsc_log_info("count=%d\n",*used_count);
+	}
+	if(arg_index==arg_count-1)
+	{
+		(*used_count)++;
 	}
 	//display result
 	for(arg_index=0;arg_index<ARG_ARR_COUNT;++arg_index){
