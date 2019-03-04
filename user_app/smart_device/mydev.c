@@ -6475,7 +6475,7 @@ static int mydev_create_single(user_dev_info *user_dev)
 		for(loop=0;loop<subdev_cnt;loop++)
 		{
 			subdev_info = user_dev->dev_info.subdev_info + loop;
-			egsc_log_debug("sub_id=[%d%s%04s]\n",subdev_info->subdev_id.subdev_type,subdev_info->subdev_id.subdev_mac,subdev_info->subdev_id.subdev_num);
+			egsc_log_debug("sub_dev_id=[%d%12s%04d]\n",subdev_info->subdev_id.subdev_type,subdev_info->subdev_id.subdev_mac,subdev_info->subdev_id.subdev_num);
 		}
 	}
 	else
