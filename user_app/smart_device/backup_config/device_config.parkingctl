@@ -1,0 +1,66 @@
+[
+{
+"server_addr":"10.101.70.52:20001",
+"ip":"10.70.10.11",
+"encrpyt_enable":0,
+"dev_type":2005,
+"vendor_num":1001,
+"id":"201902280001",
+"vendor_name":"海康",
+"machine_num":0,
+"location":"恒大山水城一期",
+"name":"SDK停车场",
+"version":"V1.0.2_20181108001",
+"subdev":
+[
+	{
+	"subdev_type":3024,
+	"id":"201902280001",
+	"subdev_num":1,
+	"dev_name":"停车场道闸",
+	"vendor_name":"海康",
+	"detail_type":0,
+	"register_type":0,
+	"ip":"127.0.0.1",
+	"port":1234,
+	"user_name":"test",
+	"user_pw":"test",
+	"version":"V0.0.1_20181108001",
+	"number":1,
+	"soft_version":"V0.0.1_20181108001"
+	},
+	{
+	"subdev_type":3031,
+	"id":"201902280001",
+	"subdev_num":2,
+	"dev_name":"停车场票箱",
+	"vendor_name":"海康",
+	"detail_type":0,
+	"register_type":0,
+	"ip":"127.0.0.1",
+	"port":1234,
+	"user_name":"test",
+	"user_pw":"test",
+	"version":"V0.0.1_20181108001",
+	"number":1,
+	"soft_version":"V0.0.1_20181108001"
+	},
+	{
+	"subdev_type":3034,
+	"id":"201902280001",
+	"subdev_num":3,
+	"dev_name":"停车场LED显示器",
+	"vendor_name":"海康",
+	"detail_type":0,
+	"register_type":0,
+	"ip":"127.0.0.1",
+	"port":1234,
+	"user_name":"test",
+	"user_pw":"test",
+	"version":"V0.0.1_20181108001",
+	"number":1,
+	"soft_version":"V0.0.1_20181108001"
+	}
+]
+}
+]
