@@ -1556,6 +1556,7 @@ static int user_file_load_device_config()
                 //continue;
             }
             subdev_array_obj = mydev_json_get_object(dev_item_obj, "subdev");
+			valid_subdev_cnt = 0;
             if(NULL != subdev_array_obj)
             {
                 mydev_json_get_array_size(subdev_array_obj, &user_dev->dev_info.subdev_count);
@@ -1622,7 +1623,6 @@ static int user_file_load_device_config()
                     }
                 }
             }
-
             valid_dev_cnt++;
             user_dev_enqueue(&s_mydev_dev_list_head, user_dev, NULL);
         }
