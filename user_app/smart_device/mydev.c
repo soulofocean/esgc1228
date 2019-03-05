@@ -6603,6 +6603,7 @@ int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
 	if(ret != EGSC_RET_SUCCESS){
 		return ret;
 	}
+	egsc_log_debug("Processing Main_DEV_ID:[%4d%4d%s]\n",user_dev->dev_info.vendor_num,user_dev->dev_info.dev_type,user_dev->dev_info.id);
 	ret = egsc_sdk_init();
     if(ret != EGSC_RET_SUCCESS)
     {
@@ -6738,7 +6739,7 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 	egsc_log_info("sub_dev_id = %s\n",sub_dev_id);
 	egsc_log_info("dev_id = %s\n",dev_id);
 	EGSC_RET_CODE ret = EGSC_RET_SUCCESS;
-	ret = user_dev_get_type(&s_mydev_dev_list_head, EGSC_TYPE_DOOR_CTRL, &user_dev);
+	//ret = user_dev_get_type(&s_mydev_dev_list_head, EGSC_TYPE_DOOR_CTRL, &user_dev);
 	//对带参数的命令进行参数拆分
 	char arg_arr[ARG_ARR_COUNT][ARG_LEN];
 	int used_count;
