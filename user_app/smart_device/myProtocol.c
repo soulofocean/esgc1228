@@ -16,9 +16,12 @@ const char recordTypeFlag[] = "===REC_TYPE===";
 const char credenceTypeFlag[] = "===CRE_TYPE===";
 const char credenceNoFlag[] = "===CRE_NO===";
 const char entryTypeFlag[] = "===ENTRY_TYPE===";
+const char devMacFlag[] = "===DEV_MAC===";
+const char gateOpenModeFlag[] = "===GATE_OPEN_MODE===";
+const char imgPathFlag[] = "===IMG_PATH===";
+const char passTypeFlag[] = "===PASS_TYPE===";
 
-
-int Update_Dev_Fork_List(unsigned         int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount)
+int Update_Dev_Fork_List(unsigned int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount)
 {
 	if(arrIndex > DEV_FORK_LIST_MAX_SIZE - 1){
 		egsc_log_error("arrIndex out of range.\n");
@@ -104,6 +107,29 @@ int replace_entry_type(char *result,char *source, int entry_type)
 	my_itoa(entry_type, tmp, sizeof(tmp));
 	return replace_string(result, source, entryTypeFlag, tmp);
 }
+int replace_dev_mac(char *result,char *source, char *dev_mac)
+{
+	return replace_string(result, source, devMacFlag, dev_mac);
+}
+int replace_gate_open_mode(char *result,char *source, int gate_open_mode)
+{
+	char tmp[11] = {0};
+	my_itoa(gate_open_mode, tmp, sizeof(tmp));
+	return replace_string(result, source, gateOpenModeFlag, tmp);
+}
+
+int replace_img_path(char *result,char *source, char *img_path)
+{
+	return replace_string(result, source, imgPathFlag, img_path);
+}
+int replace_pass_type(char *result,char *source, int pass_type)
+{
+	char tmp[11] = {0};
+	my_itoa(pass_type, tmp, sizeof(tmp));
+	return replace_string(result, source, passTypeFlag, tmp);
+}
+
+
 int ForkMulDev(unsigned int dev_arr[],msgQueenDataType *myarg)
 {
 	int index = 0;

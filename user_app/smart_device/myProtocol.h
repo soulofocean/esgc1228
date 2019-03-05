@@ -5,7 +5,7 @@
 #define DEV_FORK_LIST_MAX_SIZE 16	//最多支持16种设备
 #define DEV_MAX_COUNT 1000			//每种设备最大数目
 #define ARG_ARR_COUNT 16			//定义Socket接收到的最大参数个数
-#define ARG_LEN 64					//每个参数最大的长度
+#define ARG_LEN 128					//每个参数最大的长度
 
 typedef enum _Rsv_Msg_Process_Result{
 	No_Need_Rsp = 0,
@@ -25,6 +25,10 @@ int replace_record_type(char *result,char *source, int record_type);
 int replace_credence_type(char *result,char *source, int credence_type);
 int replace_credence_no(char *result,char *source, char *credence_no);
 int replace_entry_type(char *result,char *source, int entry_type);
+int replace_dev_mac(char *result,char *source, char *dev_mac);
+int replace_gate_open_mode(char *result,char *source, int gate_open_mode);
+int replace_img_path(char *result,char *source, char *img_path);
+int replace_pass_type(char *result,char *source, int pass_type);
 int ForkMulDev(unsigned int dev_arr[],msgQueenDataType *myarg);
 //将source_arg字符串按照空格进行拆分放入指针数组result中
 //最多拆分成arg_count个参数

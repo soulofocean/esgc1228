@@ -95,14 +95,14 @@ static int mydev_create_single(user_dev_info *user_dev);
 //设备上传消息区域，后续优化为直接从文件读取
 
 const char statusStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"DeviceType\":===DEV_TYPE===,\"DeviceStatus\":1}";
-const char recordStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"recordTime\":\"2018-12-12 15:52:00\",\"RecordType\":30004,\"CredenceType\":2,\"passType\":1}";
+const char recordStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"recordTime\":\"===SYSTEM_TIME===\",\"RecordType\":===REC_TYPE===,\"CredenceType\":===CRE_TYPE===,\"passType\":===PASS_TYPE===}";
 const char eventStr[] = "{\"EventType\":30301,\"subDeviceID\":\"===SUB_DEV_ID===\",\"time\":\"2018-11-27 15:21:00\"}";
 const char resultStr[] = "{\"DeviceType\":1,\"deviceID\":\"===SUB_DEV_ID===\",\"ResultList\":[{\"CredenceType\":1,\"CredenceNo\":\"1111\",\"UserID\":\"test1\",\"ErrorCode\":1,\"ErrorMessage\":\"test11\"}]}";
 const char fac_statusStr[] = "{\"deviceID\":\"===DEV_ID===\",\"workMode\":\"1\",\"State\":1,\"Floor\":1,\"Dicrection\":1}";
 const char elevator_recordStr[] = "{\"deviceID\":\"===DEV_ID===\",\"RecordType\":10001,\"UserType\":5,\"CredenceType\":0,\"credenceNo\":\"test123\",\"userID\":\"00cf697cf131451285663c425742453b\",\"DestFloor\":[2,3,4,5],\"lightMode\":\"0\",\"opTime\":\"2018-11-27 15:21:00\"}";
 const char fac_ba_statusStr[] = "{\"statusList\":[{\"deviceID\":\"===DEV_ID===\",\"carID\":1,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1},{\"deviceID\":\"===DEV_ID===\",\"carID\":2,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1}],\"timestamp\":\"2018-11-27 15:21:00\"}";
 const char intercomStr[] = "{\"CommandType\":1,\"SDP\":\"v=0\"}";
-const char parking_ctl_record_str[] = "{\"deviceID\":\"===DEV_ID===\",\"recordTime\":\"===SYSTEM_TIME===\",\"RecordType\":===REC_TYPE===,\"CredenceType\":===CRE_TYPE===,\"gateOpenMode\":2,\"credenceNo\":\"===CRE_NO===\",\"DeviceEntryType\":===ENTRY_TYPE===,\"recogniseCaptureImage\":[\"SDK_TEST.jpg\"]}";
+const char parking_ctl_record_str[] = "{\"deviceID\":\"===DEV_ID===\",\"recordTime\":\"===SYSTEM_TIME===\",\"RecordType\":===REC_TYPE===,\"CredenceType\":===CRE_TYPE===,\"gateOpenMode\":===GATE_OPEN_MODE===,\"credenceNo\":\"===CRE_NO===\",\"DeviceEntryType\":===ENTRY_TYPE===,\"recogniseCaptureImage\":[\"===IMG_PATH===\"]}";
 
 //设备参数区域
 /*设置参数*/
@@ -6761,14 +6761,25 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
     {
 		if(user_dev->dev_info.dev_type == EGSC_TYPE_DOOR_CTRL)
 		{
+			//record [RecordType] [CredenceType] [PassType]
+			//record 30004 2 1
 			strcpy(data,recordStr);
 			strcpy(input_req_dev,sub_dev_id);
-			replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+			replace_sub_dev_id(tmp_content, data, sub_dev_id);
+			strcpy(data,tmp_content);
+			replace_system_time(tmp_content, data);
+			strcpy(data,tmp_content);
+			replace_record_type(tmp_content, data,atoi(arg_arr[1]));
+			strcpy(data,tmp_content);
+			replace_credence_type(tmp_content, data,atoi(arg_arr[2]));
+			strcpy(data,tmp_content);
+			replace_pass_type(input_req_cont, data, atoi(arg_arr[3]));
+			//replace_sub_dev_id(input_req_cont, data, sub_dev_id);
 		}
 		else if(user_dev->dev_info.dev_type == EGSC_TYPE_PARKING_CTRL)
 		{
-			//record [RecordType] [CredenceType] [CredenceNO] [DeviceEntryType]
-			//record 10002 5 粤B44944 1
+			//record [RecordType] [CredenceType] [gateOpenMode] [CredenceNO] [DeviceEntryType] [img_path]
+			//record 10002 5 2 粤B44944 1 sdk_test.jpg
 			strcpy(data,parking_ctl_record_str);
 			strcpy(input_req_dev,dev_id);
 			replace_dev_id(tmp_content, data, dev_id);
@@ -6779,9 +6790,13 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 			strcpy(data,tmp_content);
 			replace_credence_type(tmp_content, data,atoi(arg_arr[2]));
 			strcpy(data,tmp_content);
-			replace_credence_no(tmp_content, data,arg_arr[3]);
+			replace_gate_open_mode(tmp_content, data,atoi(arg_arr[3]));
 			strcpy(data,tmp_content);
-			replace_entry_type(input_req_cont, data,atoi(arg_arr[4]));
+			replace_credence_no(tmp_content, data,arg_arr[4]);
+			strcpy(data,tmp_content);
+			replace_entry_type(tmp_content, data,atoi(arg_arr[5]));
+			strcpy(data,tmp_content);
+			replace_img_path(input_req_cont, data,arg_arr[6]);
 		}
 		else
 		{
