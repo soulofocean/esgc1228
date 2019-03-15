@@ -27,6 +27,9 @@ int socketServerInit(unsigned int myport, unsigned int lisnum, char * serveraddr
         egsc_log_error("socket init error");  
         return -1;
     }  
+	//下2行代码解决了一个Ctrl+C中断客户端会导致下次连接端口被绑定的问题
+	int mw_optval = 1;
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, (char *)&mw_optval,sizeof(mw_optval));
     bzero(&my_addr, sizeof(my_addr));  
     my_addr.sin_family = PF_INET;  
     my_addr.sin_port = htons(myport);  
