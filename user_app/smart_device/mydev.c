@@ -6597,7 +6597,7 @@ int my_dev_single_init(EGSC_DEV_TYPE dev_type, int dev_offset)
         for(loop=0; loop<user_dev->dev_info.subdev_count; loop++)
         {
             sub_devinfo = user_dev->dev_info.subdev_info+loop;
-            ret = genDevIDs(sub_devinfo->subdev_id.subdev_mac,strlen(user_dev->dev_info.id), dev_offset);
+            ret = genDevIDs(sub_devinfo->subdev_id.subdev_mac,strlen(sub_devinfo->subdev_id.subdev_mac), dev_offset);
         }
     }
 	if(ret != EGSC_RET_SUCCESS){
