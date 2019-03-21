@@ -2343,8 +2343,12 @@ static void mydev_status_callback(int handle, EGSC_DEV_STATUS_CODE status,char *
     egsc_log_user("device(%s) status callback\n", device_id_dst);
     egsc_log_user("status(%d).\n", status);
     egsc_log_user("desc_info(%s).\n", desc_info);
-	int ret = PutSendShortMQ(status);
-	egsc_log_user("device(%s) ret = %d\ns",device_id_dst,ret);
+	//int ret = PutSendShortMQ(status);
+	char msgTmp[1024] = {0}; 
+	sprintf(msgTmp,"handle(%d) status=[%d] desc=[%s]", handle,status,desc_info);
+    egsc_log_debug("%s\n", msgTmp);
+	DevMsgAck(status,msgTmp);
+	egsc_log_user("device(%s) status = %d\ns",device_id_dst,status);
 }
 
 static EGSC_RET_CODE mydev_reset_cb(int handle, char *user_id)
@@ -3905,8 +3909,12 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
-	int ret2 = PutSendShortMQ(ret);
-	egsc_log_debug("ret2(%d).\n",ret2);
+	char msgTmp[1024] = {0}; 
+	sprintf(msgTmp,"handle(%d) req_id=[%d] ret=[%d]", handle,req_id,ret);
+    egsc_log_debug("%s\n", msgTmp);
+	DevMsgAck(ret,msgTmp);
+	//int ret2 = PutSendShortMQ(ret);
+	//egsc_log_debug("ret2(%d).\n",ret2);
 	/*char buf[MAXBUF+1];
 	bzero(buf, MAXBUF + 1);
 	snprintf(buf,MAXBUF+1,"Server Response ret = %d",ret);
@@ -6757,6 +6765,11 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_dev_status(input_req_dev, input_req_cont);
     }
+	else if(strcmp(input_req_cmd, "acktype") == 0)
+	{
+		global_ack_type = atoi(arg_arr[1]);
+		egsc_log_debug("global_ack_type = [%d]",global_ack_type);
+	}
     else if(strcmp(input_req_cmd, "record") == 0)
     {
 		if(user_dev->dev_info.dev_type == EGSC_TYPE_DOOR_CTRL)
@@ -6978,6 +6991,7 @@ int check_dev_ctl_arg(char (*arg_arr)[ARG_LEN],unsigned int *dev_arr, int dev_ar
 	}
 	//校验命令是否存在
 	if(strncmp(arg_arr[3], "status", strlen("status")) != 0&&
+			strncmp(arg_arr[3], "acktype", strlen("acktype")) != 0&&
 			strncmp(arg_arr[3], "record", strlen("record")) != 0&&
 			strncmp(arg_arr[3], "event", strlen("event")) != 0&&
 			strncmp(arg_arr[3], "result", strlen("result")) != 0&&
@@ -7065,11 +7079,20 @@ int process_loop_msg()
 		}
 		else if(strcmp(arg_arr[0],"dev_start")==0){
 			egsc_log_info("Process dev_start\n");
-			//TODO:Fork 子设备进程
 			if(isStarted){
 				strcpy(str_tmp,"dev is Started Please stop first!");
 			}
 			else{
+				if(used_count>=2)
+				{
+					//设置默认消息
+					global_ack_type = atoi(arg_arr[1]);
+				}
+				if(used_count==3)
+				{
+					//设置fork间隔
+					global_fork_us = atoi(arg_arr[2])*1000;
+				}
 				ret = ForkMulDev(dev_arr,&myarg);
 				sprintf(str_tmp,"dev_start ret = [%d]",ret);
 				if(ret<0){

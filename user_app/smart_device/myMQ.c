@@ -7,6 +7,7 @@
 #include<string.h>
 #include "myMQ.h"
 #include "egsc_util.h"
+DEV_MSG_ACK_ENUM global_ack_type = SHORT_ACK;
 unsigned int GetMQMsgType(int dev_type,int dev_offset)
 {
 	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
@@ -201,3 +202,34 @@ int DeleteAllMQ(int max_msg_id)
 	printf("delete count:%d\n",d_count);
 	return EGSC_RET_SUCCESS;
 }
+void DevMsgAck(int code,char* msg)
+{
+	egsc_log_debug("enter.\n");
+	EGSC_RET_CODE ret = EGSC_RET_ERROR;
+	//后续useLongMsg可能扩展成枚举，这里先直接判断
+	switch (global_ack_type)
+	{
+		case LONG_ACK:
+		{
+			ret = PutSendMQ(msg);
+			break;
+		}
+		case SHORT_ACK:
+		{
+			ret = PutSendShortMQ(code);
+			break;
+		}
+		case NO_ACK:
+		{
+			egsc_log_debug("PID[%d] is set NO_ACK\n",getpid());
+			break;
+		}
+		default:
+		{
+			egsc_log_error("Invalid Type:[%d]",global_ack_type);
+			break;
+		}
+	}
+	egsc_log_debug("pid:[%d] DevMsgAck=[%d]\n",getpid(),ret);
+}
+

@@ -6,7 +6,7 @@
 #define DEV_MAX_COUNT 1000			//每种设备最大数目
 #define ARG_ARR_COUNT 16			//定义Socket接收到的最大参数个数
 #define ARG_LEN 128					//每个参数最大的长度
-
+extern unsigned int global_fork_us;
 typedef enum _Rsv_Msg_Process_Result{
 	No_Need_Rsp = 0,
 	DSP_MSG = 1,
