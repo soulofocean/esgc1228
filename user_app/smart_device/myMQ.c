@@ -7,7 +7,7 @@
 #include<string.h>
 #include "myMQ.h"
 #include "egsc_util.h"
-DEV_MSG_ACK_ENUM global_ack_type = SHORT_ACK;
+DEV_MSG_ACK_ENUM global_ack_type = NO_ACK;
 unsigned int GetMQMsgType(int dev_type,int dev_offset)
 {
 	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
@@ -211,7 +211,9 @@ void DevMsgAck(int code,char* msg)
 	{
 		case LONG_ACK:
 		{
-			ret = PutSendMQ(msg);
+			char jsonmsg[MQ_INFO_BUFF] = {0};
+			snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"code\":%d,\"desc\":\"%s\"}",code,msg);
+			ret = PutSendMQ(jsonmsg);
 			break;
 		}
 		case SHORT_ACK:
@@ -230,6 +232,6 @@ void DevMsgAck(int code,char* msg)
 			break;
 		}
 	}
-	egsc_log_debug("pid:[%d] DevMsgAck=[%d]\n",getpid(),ret);
+	egsc_log_debug("pid:[%d] global_ack_type=[%d] ret=[%d]\n",getpid(),global_ack_type,ret);
 }
 

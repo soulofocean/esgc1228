@@ -177,7 +177,7 @@ int socketServerLoopSendShort()
 			sleep(SOCKET_SEND_SLEEP_SEC);
 			continue;
 		}
-		sprintf(buf,"status code:%d",msgs_out.msgData.statusCode);
+		snprintf(buf,MQ_INFO_BUFF-1,"{\"code\":%d}",msgs_out.msgData.statusCode);
 		len = send(socket_new_fd, buf, strlen(buf), 0);
 		if (len > 0)
 			egsc_log_info("msg:%s\tsend success，len = %d bytes！\n", buf, len);
