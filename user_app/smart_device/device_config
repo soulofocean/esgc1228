@@ -1,6 +1,86 @@
 [
 {
-"server_addr":"10.101.70.52:20001",
+"server_addr":"10.101.70.53:20001",
+"ip":"10.70.10.11",
+"encrpyt_enable":0,
+"dev_type":2020,
+"vendor_num":1005,
+"id":"201903280001",
+"vendor_name":"立林",
+"machine_num":0,
+"location":"恒大山水城一期",
+"name":"电梯厂商控制器",
+"version":"V1.0.2_20181108001",
+"subdev":
+[
+	{
+	"subdev_type":3063,
+	"id":"201903280001",
+	"subdev_num":1,
+	"dev_name":"电梯轿厢",
+	"vendor_name":"立林",
+	"detail_type":0,
+	"register_type":0,
+	"ip":"127.0.0.1",
+	"port":1234,
+	"user_name":"test",
+	"user_pw":"test",
+	"version":"V0.0.1_20181108001",
+	"number":1,
+	"soft_version":"V0.0.1_20181108001"
+	},
+	{
+	"subdev_type":3063,
+	"id":"201903280001",
+	"subdev_num":2,
+	"dev_name":"电梯轿厢",
+	"vendor_name":"立林",
+	"detail_type":0,
+	"register_type":0,
+	"ip":"127.0.0.1",
+	"port":1234,
+	"user_name":"test",
+	"user_pw":"test",
+	"version":"V0.0.1_20181108001",
+	"number":1,
+	"soft_version":"V0.0.1_20181108001"
+	}
+]
+},
+{
+"server_addr":"10.101.70.53:20001",
+"ip":"10.70.10.11",
+"encrpyt_enable":0,
+"dev_type":2016,
+"vendor_num":1005,
+"id":"201903270001",
+"vendor_name":"立林",
+"machine_num":0,
+"location":"恒大山水城一期",
+"name":"电梯联动控制器",
+"version":"V1.0.2_20181108001",
+"subdev":
+[
+	{
+	"subdev_type":3063,
+	"id":"201903270001",
+	"subdev_num":1,
+	"dev_name":"电梯轿厢",
+	"vendor_name":"立林",
+	"detail_type":0,
+	"register_type":0,
+	"ip":"127.0.0.1",
+	"port":1234,
+	"user_name":"test",
+	"user_pw":"test",
+	"version":"V0.0.1_20181108001",
+	"number":1,
+	"soft_version":"V0.0.1_20181108001"
+	}
+]
+},
+{
+"server_addr":"10.101.70.53:20001",
 "ip":"10.70.10.11",
 "encrpyt_enable":0,
 "dev_type":2009,
@@ -32,7 +112,7 @@
 ]
 },
 {
-"server_addr":"10.101.70.52:20001",
+"server_addr":"10.101.70.53:20001",
 "ip":"10.70.10.11",
 "encrpyt_enable":0,
 "dev_type":2005,

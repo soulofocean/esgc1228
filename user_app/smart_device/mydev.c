@@ -341,6 +341,7 @@ static int user_check_subdevice_type(int dev_type, int subdevice_type)
             {
                 //EGSC_TYPE_ELEVATOR_CTRL = 2020, // 电梯厂商控制器
                 case EGSC_SUBTYPE_ELEVATOR_IC_CARD_READER:                      // 电梯IC卡读头
+                case EGSC_SUBTYPE_ELEVATOR_CAR:                                 // 电梯轿厢
                 {
                     valid = 1;
                     break;
