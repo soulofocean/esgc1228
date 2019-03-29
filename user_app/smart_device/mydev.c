@@ -2346,10 +2346,10 @@ static void mydev_status_callback(int handle, EGSC_DEV_STATUS_CODE status,char *
     egsc_log_user("status(%d).\n", status);
     egsc_log_user("desc_info(%s).\n", desc_info);
 	//int ret = PutSendShortMQ(status);
-	char msgTmp[1024] = {0}; 
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
 	sprintf(msgTmp,"handle(%d) status=[%d] desc=[%s]", handle,status,desc_info);
     egsc_log_debug("%s\n", msgTmp);
-	DevMsgAck(status,msgTmp);
+	DevMsgAck(status,__func__,msgTmp);
 	egsc_log_user("device(%s) status = %d\ns",device_id_dst,status);
 }
 
@@ -3914,7 +3914,7 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
 	char msgTmp[1024] = {0}; 
 	sprintf(msgTmp,"handle(%d) req_id=[%d] ret=[%d]", handle,req_id,ret);
     egsc_log_debug("%s\n", msgTmp);
-	DevMsgAck(ret,msgTmp);
+	DevMsgAck(ret,__func__,msgTmp);
 	//int ret2 = PutSendShortMQ(ret);
 	//egsc_log_debug("ret2(%d).\n",ret2);
 	/*char buf[MAXBUF+1];
@@ -6775,8 +6775,20 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 	{
 		//acktype [ACKTYPE:(0:None,1:Short,2:Long)]
 		//acktype 2
-		global_ack_type = atoi(arg_arr[1]);
-		egsc_log_debug("global_ack_type = [%d]",global_ack_type);
+		int setV=atoi(arg_arr[1]);
+		char msg[100] = {0};
+		if(setV<0||setV>2)
+		{
+			snprintf(msg,sizeof(msg)-1,"Invalid global_ack_type input:%d",setV);
+			ret = EGSC_RET_DATA_ERROR;
+		}
+		else
+		{
+			global_ack_type = setV;
+			snprintf(msg,sizeof(msg)-1,"global_ack_type is set to:[%d]",setV);
+			ret = EGSC_RET_SUCCESS;
+		}
+		DevMsgAck(ret, __func__, msg);
 	}
     else if(strcmp(input_req_cmd, "record") == 0)
     {
@@ -7223,7 +7235,8 @@ int process_loop_msg()
 			}
 			case SEND_MSG:
 			{
-				PutSendMQ(str_tmp);
+				//目前此处没有区分成功还是失败的回复，所以code只能发个端口号了
+				PutSendMQ(SOCKET_SERVER_PORT,__func__,str_tmp);
 				break;
 			}
 			case No_Need_Rsp:

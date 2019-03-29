@@ -127,11 +127,14 @@ int PutRsvMQ(msg_struct msgs)
 {
 	return Enqueue_MQ(SOCKET_RSV_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
-int PutSendMQ(char * info)
+int PutSendMQ(int code,const char* func_name,char * info)
 {
 	msg_struct msgs;
+	memset(&msgs,0,sizeof(msg_struct));
 	msgs.msgType = SOCKET_SEND_MSG_TYPE;
-	strncpy(msgs.msgData.info,info,sizeof(msgs.msgData.info));
+	char jsonmsg[MQ_INFO_BUFF] = {0};
+	snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"fun\":\"\%s\",\"desc\":\"%s\"}",getpid(),code,func_name,info);
+	strncpy(msgs.msgData.info,jsonmsg,sizeof(msgs.msgData.info));
 	return Enqueue_MQ(SOCKET_SEND_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
 int PutSendShortMQ(int status_code)
@@ -202,7 +205,7 @@ int DeleteAllMQ(int max_msg_id)
 	printf("delete count:%d\n",d_count);
 	return EGSC_RET_SUCCESS;
 }
-void DevMsgAck(int code,char* msg)
+void DevMsgAck(int code,const char* func_name,char* msg)
 {
 	egsc_log_debug("enter.\n");
 	EGSC_RET_CODE ret = EGSC_RET_ERROR;
@@ -211,9 +214,7 @@ void DevMsgAck(int code,char* msg)
 	{
 		case LONG_ACK:
 		{
-			char jsonmsg[MQ_INFO_BUFF] = {0};
-			snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"code\":%d,\"desc\":\"%s\"}",code,msg);
-			ret = PutSendMQ(jsonmsg);
+			ret = PutSendMQ(code,func_name,msg);
 			break;
 		}
 		case SHORT_ACK:
@@ -228,7 +229,7 @@ void DevMsgAck(int code,char* msg)
 		}
 		default:
 		{
-			egsc_log_error("Invalid Type:[%d]",global_ack_type);
+			egsc_log_error("Invalid Type:[%d]\n",global_ack_type);
 			break;
 		}
 	}

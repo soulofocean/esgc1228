@@ -51,7 +51,7 @@ int Dequeue_MQ_Short(unsigned int mqKey,long msgType,msg_short_struct *msgbuff, 
 int Delete_MQ(unsigned int mqKey);
 unsigned int GetDispatchMQKey(long msg_type);
 int PutRsvMQ(msg_struct msgs);
-int PutSendMQ(char * info);
+int PutSendMQ(int code,const char* func_name,char * info);
 int PutSendShortMQ(int status_code);
 int PutDispatchMQ(int dev_type,int dev_index,char* info);
 int PutDispatchNMQ(msg_struct msgs,int put_count);
@@ -61,5 +61,5 @@ int GetSendShortMQ(msg_short_struct *msgbuff);
 int GetDispatchMQ(long msgType,msg_struct *msgbuff);
 int DelDispatchMQ(long msgType);
 int DeleteAllMQ(int max_msg_id);
-void DevMsgAck(int code,char* msg);
+void DevMsgAck(int code,const char* func_name,char* msg);
 #endif
