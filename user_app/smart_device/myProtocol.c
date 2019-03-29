@@ -6,7 +6,8 @@
 #include "myMQ.h"
 #include "egsc_util.h"
 #include <time.h>
-
+#define INT_STR_LEN 11
+const char devStatusFlag[] = "===DEV_STATUS===";
 const char sysTimeFlag[] = "===SYSTEM_TIME===";
 const char devTypeFlag[] = "===DEV_TYPE===";
 const char subDevTypeFlag[] = "===SUB_DEV_TYPE===";
@@ -20,6 +21,29 @@ const char devMacFlag[] = "===DEV_MAC===";
 const char gateOpenModeFlag[] = "===GATE_OPEN_MODE===";
 const char imgPathFlag[] = "===IMG_PATH===";
 const char passTypeFlag[] = "===PASS_TYPE===";
+const char eventTypeFlag[] = "===EVENT_TYPE===";
+const char errCodeFlag[] = "===ERR_CODE===";
+//电梯的FLAG
+const char workModeFlag[] = "===WORK_MODE===";
+const char stateFlag[] = "===STATE===";
+const char floorFlag[] = "===FLOOR===";
+const char dicrectionFlag[] = "===DICRECTION===";
+
+const char userTypeFlag[] = "===USER_TYPE===";
+const char userIDFlag[] = "===USER_ID===";
+const char destFloorFlag[] = "===DEST_FLOOR===";
+const char lightModeFlag[] = "===LIGHT_MODE===";
+
+const char carIDFlag[] = "===Car_ID===";//i
+const char phyFloorFlag[] = "===PHY_FlOOR===";//i
+const char dispFloorFlag[] = "===DISP_FlOOR===";
+const char carStatusFLag[] = "===CAR_STATUS===";
+const char doorStatusFlag[] = "===DOOR_STATUS===";
+const char errStatusFlag[] = "===ERR_STATUS===";//i
+const char errMsgFlag[] = "===ERR_MSG===";
+const char fireCtlStatusFlag[] = "===FIRE_CTL_STATUS===";//i
+
+
 unsigned int global_fork_us = 1000;
 int Update_Dev_Fork_List(unsigned int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount)
 {
@@ -53,6 +77,105 @@ int replace_string(char *result, char *source, const char* oldStr, char *destStr
     strcpy(result, p);   
 	return 0;
 }
+int replace_err_code(char *result,char *source, int err_code)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(err_code, tmp, sizeof(tmp));
+	return replace_string(result, source, errCodeFlag, tmp);
+}
+
+int replace_dev_status(char *result,char *source, int dev_status)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(dev_status, tmp, sizeof(tmp));
+	return replace_string(result, source, devStatusFlag, tmp);
+}
+int replace_event_type(char *result,char *source, int event_type)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(event_type, tmp, sizeof(tmp));
+	return replace_string(result, source, eventTypeFlag, tmp);
+}
+int replace_disp_floor(char* result, char* source, char* disp_floor)
+{
+	return replace_string(result, source, dispFloorFlag, disp_floor);
+}
+int replace_car_status(char* result, char* source, char* car_status)
+{
+	return replace_string(result, source, carStatusFLag, car_status);
+}
+int replace_door_status(char* result, char* source, char* door_status)
+{
+	return replace_string(result, source, doorStatusFlag, door_status);
+}
+int replace_err_msg(char* result, char* source, char* err_msg)
+{
+	return replace_string(result, source, errMsgFlag, err_msg);
+}
+int replace_car_id(char *result,char *source, int car_id)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(car_id, tmp, sizeof(tmp));
+	return replace_string(result, source, carIDFlag, tmp);
+}
+int replace_phy_floor(char *result,char *source, int phy_floor)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(phy_floor, tmp, sizeof(tmp));
+	return replace_string(result, source, phyFloorFlag, tmp);
+}
+int replace_err_status(char *result,char *source, int err_status)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(err_status, tmp, sizeof(tmp));
+	return replace_string(result, source, errStatusFlag, tmp);
+}
+int replace_fire_ctl_status(char *result,char *source, int fire_ctl_status)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(fire_ctl_status, tmp, sizeof(tmp));
+	return replace_string(result, source, fireCtlStatusFlag, tmp);
+}
+int replace_user_id(char* result, char* source, char* user_id)
+{
+	return replace_string(result, source, userIDFlag, user_id);
+}
+int replace_light_mode(char* result, char* source, char* light_mode)
+{
+	return replace_string(result, source, lightModeFlag, light_mode);
+}
+int replace_user_type(char *result,char *source, int user_type)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(user_type, tmp, sizeof(tmp));
+	return replace_string(result, source, userTypeFlag, tmp);
+}
+int replace_dest_floor(char *result,char *source, char* dest_floor)
+{
+	return replace_string(result, source, destFloorFlag, dest_floor);
+}
+int replace_work_mode(char* result, char* source, char* work_mode)
+{
+	return replace_string(result, source, workModeFlag, work_mode);
+}
+int replace_status(char *result,char *source, int status)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(status, tmp, sizeof(tmp));
+	return replace_string(result, source, stateFlag, tmp);
+}
+int replace_floor(char *result,char *source, int floor)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(floor, tmp, sizeof(tmp));
+	return replace_string(result, source, floorFlag, tmp);
+}
+int replace_dicrection(char *result,char *source, int dicrection)
+{
+	char tmp[INT_STR_LEN] = {0};
+	my_itoa(dicrection, tmp, sizeof(tmp));
+	return replace_string(result, source, dicrectionFlag, tmp);
+}
 int replace_system_time(char *result,char *source)
 {
 	char now[100] = {0};
@@ -75,25 +198,25 @@ int replace_sub_dev_id(char *result,char *source, char *sub_dev_id)
 }
 int replace_dev_type(char *result,char *source, int dev_type)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(dev_type, tmp, sizeof(tmp));
 	return replace_string(result, source, devTypeFlag, tmp);
 }
 int replace_sub_dev_type(char *result,char *source, int sub_dev_type)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(sub_dev_type, tmp, sizeof(tmp));
 	return replace_string(result, source, subDevTypeFlag, tmp);
 }
 int replace_record_type(char *result,char *source, int record_type)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(record_type, tmp, sizeof(tmp));
 	return replace_string(result, source, recordTypeFlag, tmp);
 }
 int replace_credence_type(char *result,char *source, int credence_type)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(credence_type, tmp, sizeof(tmp));
 	return replace_string(result, source, credenceTypeFlag, tmp);
 }
@@ -103,7 +226,7 @@ int replace_credence_no(char *result,char *source, char *credence_no)
 }
 int replace_entry_type(char *result,char *source, int entry_type)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(entry_type, tmp, sizeof(tmp));
 	return replace_string(result, source, entryTypeFlag, tmp);
 }
@@ -113,7 +236,7 @@ int replace_dev_mac(char *result,char *source, char *dev_mac)
 }
 int replace_gate_open_mode(char *result,char *source, int gate_open_mode)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(gate_open_mode, tmp, sizeof(tmp));
 	return replace_string(result, source, gateOpenModeFlag, tmp);
 }
@@ -124,7 +247,7 @@ int replace_img_path(char *result,char *source, char *img_path)
 }
 int replace_pass_type(char *result,char *source, int pass_type)
 {
-	char tmp[11] = {0};
+	char tmp[INT_STR_LEN] = {0};
 	my_itoa(pass_type, tmp, sizeof(tmp));
 	return replace_string(result, source, passTypeFlag, tmp);
 }

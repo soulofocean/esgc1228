@@ -94,13 +94,14 @@ static int mydev_create_single(user_dev_info *user_dev);
 
 //设备上传消息区域，后续优化为直接从文件读取
 
-const char statusStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"DeviceType\":===DEV_TYPE===,\"DeviceStatus\":1}";
+const char statusStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"DeviceType\":===DEV_TYPE===,\"DeviceStatus\":===DEV_STATUS===}";
 const char recordStr[] = "{\"deviceID\":\"===SUB_DEV_ID===\",\"recordTime\":\"===SYSTEM_TIME===\",\"RecordType\":===REC_TYPE===,\"CredenceType\":===CRE_TYPE===,\"passType\":===PASS_TYPE===}";
-const char eventStr[] = "{\"EventType\":30301,\"subDeviceID\":\"===SUB_DEV_ID===\",\"time\":\"2018-11-27 15:21:00\"}";
-const char resultStr[] = "{\"DeviceType\":1,\"deviceID\":\"===SUB_DEV_ID===\",\"ResultList\":[{\"CredenceType\":1,\"CredenceNo\":\"1111\",\"UserID\":\"test1\",\"ErrorCode\":1,\"ErrorMessage\":\"test11\"}]}";
-const char fac_statusStr[] = "{\"deviceID\":\"===DEV_ID===\",\"workMode\":\"1\",\"State\":1,\"Floor\":1,\"Dicrection\":1}";
-const char elevator_recordStr[] = "{\"deviceID\":\"===DEV_ID===\",\"RecordType\":10001,\"UserType\":5,\"CredenceType\":0,\"credenceNo\":\"test123\",\"userID\":\"00cf697cf131451285663c425742453b\",\"DestFloor\":[2,3,4,5],\"lightMode\":\"0\",\"opTime\":\"2018-11-27 15:21:00\"}";
-const char fac_ba_statusStr[] = "{\"statusList\":[{\"deviceID\":\"===DEV_ID===\",\"carID\":1,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1},{\"deviceID\":\"===DEV_ID===\",\"carID\":2,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1}],\"timestamp\":\"2018-11-27 15:21:00\"}";
+const char eventStr[] = "{\"EventType\":===EVENT_TYPE===,\"subDeviceID\":\"===SUB_DEV_ID===\",\"time\":\"===SYSTEM_TIME===\"}";
+const char resultStr[] = "{\"DeviceType\":===DEV_TYPE===,\"deviceID\":\"===SUB_DEV_ID===\",\"ResultList\":[{\"CredenceType\":===CRE_TYPE===,\"CredenceNo\":\"===CRE_NO===\",\"UserID\":\"===USER_ID===\",\"ErrorCode\":===ERR_CODE===,\"ErrorMessage\":\"===ERR_MSG===\"}]}";
+const char fac_statusStr[] = "{\"deviceID\":\"===DEV_ID===\",\"workMode\":\"===WORK_MODE===\",\"State\":===STATE===,\"Floor\":===FLOOR===,\"Dicrection\":===DICRECTION===}";
+const char elevator_recordStr[] = "{\"deviceID\":\"===DEV_ID===\",\"RecordType\":===REC_TYPE===,\"UserType\":===USER_TYPE===,\"CredenceType\":===CRE_TYPE===,\"credenceNo\":\"===CRE_NO===\",\"userID\":\"===USER_ID===\",\"DestFloor\":===DEST_FLOOR===,\"lightMode\":\"===LIGHT_MODE===\",\"opTime\":\"===SYSTEM_TIME===\"}";
+//const char fac_ba_statusStr[] = "{\"statusList\":[{\"deviceID\":\"===DEV_ID===\",\"carID\":1,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1},{\"deviceID\":\"===DEV_ID===\",\"carID\":2,\"physicalfloor\":1,\"displayfloor\":\"1234\",\"carStatus\":\"00\",\"doorStatus\":\"10\",\"ErrorStatus\":1,\"errorMessage\":\"test1234\",\"fireCtrlStatus\":1}],\"timestamp\":\"2018-11-27 15:21:00\"}";
+const char fac_ba_statusStr[] = "{\"statusList\":[{\"deviceID\":\"===DEV_ID===\",\"carID\":===Car_ID===,\"physicalfloor\":===PHY_FlOOR===,\"displayfloor\":\"===DISP_FlOOR===\",\"carStatus\":\"===CAR_STATUS===\",\"doorStatus\":\"===DOOR_STATUS===\",\"ErrorStatus\":===ERR_STATUS===,\"errorMessage\":\"===ERR_MSG===\",\"fireCtrlStatus\":===FIRE_CTL_STATUS===}],\"timestamp\":\"===SYSTEM_TIME===\"}";
 const char intercomStr[] = "{\"CommandType\":1,\"SDP\":\"v=0\"}";
 const char parking_ctl_record_str[] = "{\"deviceID\":\"===DEV_ID===\",\"recordTime\":\"===SYSTEM_TIME===\",\"RecordType\":===REC_TYPE===,\"CredenceType\":===CRE_TYPE===,\"gateOpenMode\":===GATE_OPEN_MODE===,\"credenceNo\":\"===CRE_NO===\",\"DeviceEntryType\":===ENTRY_TYPE===,\"recogniseCaptureImage\":[\"===IMG_PATH===\"]}";
 
@@ -1522,7 +1523,7 @@ static int user_file_load_device_config()
             memset(user_dev, 0, sizeof(user_dev_info));
             mydev_json_get_string(dev_item_obj, "server_addr", user_dev->dev_info.srv_addr, sizeof(user_dev->dev_info.srv_addr));
 			//64bit标准SDK暂不可用
-			//mydev_json_get_string(dev_item_obj, "ip", user_dev->dev_info.ip, sizeof(user_dev->dev_info.ip));
+			mydev_json_get_string(dev_item_obj, "ip", user_dev->dev_info.ip, sizeof(user_dev->dev_info.ip));
             mydev_json_get_int(dev_item_obj, "encrpyt_enable", &user_dev->dev_info.encrpyt_enable);
             mydev_json_get_int(dev_item_obj, "dev_type", (int *)&user_dev->dev_info.dev_type);
             mydev_json_get_int(dev_item_obj, "vendor_num", (int *)&user_dev->dev_info.vendor_num);
@@ -6759,15 +6760,21 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
 	strcpy(input_req_cmd,arg_arr[0]);
 	if(strcmp(input_req_cmd, "status") == 0)
     {
+		//status [DeviceStatus]
+		//status 1
 		strcpy(input_req_dev,sub_dev_id);
 		strcpy(data,statusStr);
 		replace_sub_dev_id(tmp_content, data, sub_dev_id);
+		strcpy(data,tmp_content);
+		replace_dev_status(tmp_content, data, atoi(arg_arr[1]));
 		replace_dev_type(input_req_cont, tmp_content, tmp_main->dev_type);
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_dev_status(input_req_dev, input_req_cont);
     }
 	else if(strcmp(input_req_cmd, "acktype") == 0)
 	{
+		//acktype [ACKTYPE:(0:None,1:Short,2:Long)]
+		//acktype 2
 		global_ack_type = atoi(arg_arr[1]);
 		egsc_log_debug("global_ack_type = [%d]",global_ack_type);
 	}
@@ -6822,41 +6829,106 @@ int processUploadInfo(user_dev_info *user_dev,char * input_req_cmd)
     }
     else if(strcmp(input_req_cmd, "event") == 0)
     {
+		//event [EventType]
+		//event 30301
 		strcpy(input_req_dev,sub_dev_id);
 		strcpy(data,eventStr);
-		replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		replace_sub_dev_id(tmp_content, data, sub_dev_id);
+		strcpy(data,tmp_content);
+		replace_event_type(tmp_content, data, atoi(arg_arr[1]));
+		replace_system_time(input_req_cont, tmp_content);
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_event(input_req_dev, input_req_cont);
 	}
 	else if(strcmp(input_req_cmd, "result") == 0)
     {
+		//result [DeviceType] [CredenceType] [Credenceno] [UserID] [ErrorCode] [ErrorMessage]
+		//result 1 1 1111 test1 1 test11
 		strcpy(input_req_dev,sub_dev_id);
 		strcpy(data,resultStr);
-		replace_sub_dev_id(input_req_cont, data, sub_dev_id);
+		strcpy(data,tmp_content);
+		replace_dev_type(tmp_content, data, atoi(arg_arr[1]));
+		strcpy(data,tmp_content);
+		replace_credence_type(tmp_content, data, atoi(arg_arr[2]));
+		strcpy(data,tmp_content);
+		replace_credence_no(tmp_content, data, arg_arr[3]);
+		strcpy(data,tmp_content);
+		replace_user_id(tmp_content, data, arg_arr[4]);
+		strcpy(data,tmp_content);
+		replace_err_code(tmp_content, data, atoi(arg_arr[5]));
+		strcpy(data,tmp_content);
+		replace_err_msg(tmp_content, data, arg_arr[6]);
+		replace_sub_dev_id(input_req_cont, tmp_content, sub_dev_id);
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_credence_load_result(input_req_dev, input_req_cont);
     }
     else if(strcmp(input_req_cmd, "fac_status") == 0)
     {
+		//fac_status [workMode:0普通1授权] [State:1正常2故障] [Floor] [Dicrection:0停1上2下]
+		//fac_status 1 1 1 1
 		strcpy(input_req_dev,dev_id);
 		strcpy(data,fac_statusStr);
-		replace_dev_id(input_req_cont, data, dev_id);
+		replace_dev_id(tmp_content, data, dev_id);
+		strcpy(data,tmp_content);
+		replace_work_mode(tmp_content, data, arg_arr[1]);
+		strcpy(data,tmp_content);
+		replace_status(tmp_content, data, atoi(arg_arr[2]));
+		strcpy(data,tmp_content);
+		replace_floor(tmp_content, data, atoi(arg_arr[3]));
+		strcpy(data,tmp_content);
+		replace_dicrection(input_req_cont, data, atoi(arg_arr[4]));
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_fac_dev_status(input_req_dev, input_req_cont);
     }
     else if(strcmp(input_req_cmd, "elevator_record") == 0)
     {
+		//elevator_record [Recordtype] [UserType] [CredenceType] [CredenceNo] [UserID] [DestFloor] [LightMode:0手1自]
+		//elevator_record 10001 5 0 test123 00cf697cf131451285663c425742453b [2,3,4,5] 0
 		strcpy(input_req_dev,dev_id);
 		strcpy(data,elevator_recordStr);
-		replace_dev_id(input_req_cont, data, dev_id);
+		replace_dev_id(tmp_content, data, dev_id);
+		strcpy(data,tmp_content);
+		replace_record_type(tmp_content, data, atoi(arg_arr[1]));
+		strcpy(data,tmp_content);
+		replace_user_type(tmp_content, data, atoi(arg_arr[2]));
+		strcpy(data,tmp_content);
+		replace_credence_type(tmp_content, data, atoi(arg_arr[3]));
+		strcpy(data,tmp_content);
+		replace_credence_no(tmp_content, data, arg_arr[4]);
+		strcpy(data,tmp_content);
+		replace_user_id(tmp_content, data, arg_arr[5]);
+		strcpy(data,tmp_content);
+		replace_dest_floor(tmp_content, data, arg_arr[6]);
+		strcpy(data,tmp_content);
+		replace_light_mode(tmp_content, data, arg_arr[7]);
+		replace_system_time(input_req_cont, tmp_content);
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_fac_elevator_record(input_req_dev, input_req_cont);
     }
     else if(strcmp(input_req_cmd, "fac_ba_status") == 0)
     {
+		//fac_ba_status [CarID] [Phy_Floor] [Disp_Floor] [CarStatus] [DoorStatus] [ErrStatus] [ErrMsg] [FireCtlStatus]
+		//fac_ba_status 1 1 1234 00 10 1 test1234 1
 		strcpy(input_req_dev,dev_id);
 		strcpy(data,fac_ba_statusStr);
-		replace_dev_id(input_req_cont, data, dev_id);
+		replace_dev_id(tmp_content, data, dev_id);
+		strcpy(data,tmp_content);
+		replace_car_id(tmp_content, data, atoi(arg_arr[1]));
+		strcpy(data,tmp_content);
+		replace_phy_floor(tmp_content, data, atoi(arg_arr[2]));
+		strcpy(data,tmp_content);
+		replace_disp_floor(tmp_content, data, arg_arr[3]);
+		strcpy(data,tmp_content);
+		replace_car_status(tmp_content, data, arg_arr[4]);
+		strcpy(data,tmp_content);
+		replace_door_status(tmp_content, data, arg_arr[5]);
+		strcpy(data,tmp_content);
+		replace_err_status(tmp_content, data, atoi(arg_arr[6]));
+		strcpy(data,tmp_content);
+		replace_err_msg(tmp_content, data, arg_arr[7]);
+		strcpy(data,tmp_content);
+		replace_fire_ctl_status(tmp_content, data, atoi(arg_arr[8]));
+		replace_system_time(input_req_cont, tmp_content);
 		egsc_log_info("input_req_cont = %s\n",input_req_cont);
         ret = mydev_upload_fac_ba_status(input_req_dev, input_req_cont);
     }
