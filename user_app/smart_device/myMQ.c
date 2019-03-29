@@ -134,7 +134,7 @@ int PutSendMQ(int code,const char* func_name,char * info)
 	msgs.msgType = SOCKET_SEND_MSG_TYPE;
 	char jsonmsg[MQ_INFO_BUFF] = {0};
 	snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"fun\":\"\%s\",\"desc\":\"%s\"}",getpid(),code,func_name,info);
-	strncpy(msgs.msgData.info,jsonmsg,sizeof(msgs.msgData.info));
+	strncpy(msgs.msgData.info,jsonmsg,sizeof(msgs.msgData.info)-1);
 	return Enqueue_MQ(SOCKET_SEND_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
 int PutSendShortMQ(int status_code)
