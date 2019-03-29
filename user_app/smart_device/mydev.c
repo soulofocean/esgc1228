@@ -1523,7 +1523,7 @@ static int user_file_load_device_config()
             memset(user_dev, 0, sizeof(user_dev_info));
             mydev_json_get_string(dev_item_obj, "server_addr", user_dev->dev_info.srv_addr, sizeof(user_dev->dev_info.srv_addr));
 			//64bit标准SDK暂不可用
-			mydev_json_get_string(dev_item_obj, "ip", user_dev->dev_info.ip, sizeof(user_dev->dev_info.ip));
+			//mydev_json_get_string(dev_item_obj, "ip", user_dev->dev_info.ip, sizeof(user_dev->dev_info.ip));
             mydev_json_get_int(dev_item_obj, "encrpyt_enable", &user_dev->dev_info.encrpyt_enable);
             mydev_json_get_int(dev_item_obj, "dev_type", (int *)&user_dev->dev_info.dev_type);
             mydev_json_get_int(dev_item_obj, "vendor_num", (int *)&user_dev->dev_info.vendor_num);
