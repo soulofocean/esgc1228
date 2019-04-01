@@ -280,6 +280,7 @@ int ForkMulDev(unsigned int dev_arr[],msgQueenDataType *myarg)
 			else if(fpid == 0)
 			{
 				//I'm child
+				global_msg_type = GetMQMsgType(dev_type, dev_index);
 				child_break = 1;
 				break;
 			}

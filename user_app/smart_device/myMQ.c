@@ -8,6 +8,7 @@
 #include "myMQ.h"
 #include "egsc_util.h"
 DEV_MSG_ACK_ENUM global_ack_type = NO_ACK;
+long global_msg_type = SOCKET_SEND_MSG_TYPE;
 unsigned int GetMQMsgType(int dev_type,int dev_offset)
 {
 	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
@@ -131,7 +132,7 @@ int PutSendMQ(int code,const char* func_name,char * info)
 {
 	msg_struct msgs;
 	memset(&msgs,0,sizeof(msg_struct));
-	msgs.msgType = SOCKET_SEND_MSG_TYPE;
+	msgs.msgType = global_msg_type;
 	char jsonmsg[MQ_INFO_BUFF] = {0};
 	snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"fun\":\"\%s\",\"desc\":\"%s\"}",getpid(),code,func_name,info);
 	strncpy(msgs.msgData.info,jsonmsg,sizeof(msgs.msgData.info)-1);
@@ -140,8 +141,8 @@ int PutSendMQ(int code,const char* func_name,char * info)
 int PutSendShortMQ(int status_code)
 {
 	msg_short_struct msgs;
-	//msgs.msgType = GetMQMsgType(dev_type, dev_index);
-	msgs.msgType = SOCKET_SEND_MSG_TYPE;
+	memset(&msgs,0,sizeof(msg_short_struct));
+	msgs.msgType = global_msg_type;
 	msgs.msgData.statusCode = status_code;
 	return Enqueue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, msgs, MQ_SEND_BUFF_SHORT, ipc_no_wait);
 }

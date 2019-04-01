@@ -117,6 +117,7 @@ int socketServerLoopRsv(int sockfd)
                     if (len > 0){  
                         egsc_log_debug("Rsv msg success:'%s'，共%d个字节的数据\n",buf, len);
 						msg_struct msgs;
+						memset(&msgs,0,sizeof(msg_struct));
 						msgs.msgType = SOCKET_RSV_MSG_TYPE;
 						strncpy(msgs.msgData.info,buf,MQ_INFO_BUFF);
 						PutRsvMQ(msgs);
@@ -145,6 +146,7 @@ int socketServerLoopSend()
 	socklen_t len;
 	int ret;
 	char buf[MQ_INFO_BUFF] = {0};
+	memset(&msgs_out,0,sizeof(msgs_out));
 	while(1){
 		ret = Dequeue_MQ(SOCKET_SEND_MQ_KEY, 0, &msgs_out,MQ_RSV_BUFF,ipc_need_wait);
 		if(ret<0){
@@ -152,7 +154,8 @@ int socketServerLoopSend()
 			sleep(SOCKET_SEND_SLEEP_SEC);
 			continue;
 		}
-		strncpy(buf,msgs_out.msgData.info,strlen(msgs_out.msgData.info)+1);
+		//strncpy(buf,msgs_out.msgData.info,strlen(msgs_out.msgData.info)+1);
+		snprintf(buf,sizeof(buf)-1,"{\"msgtype\":%ld,\"data\":%s}",msgs_out.msgType,msgs_out.msgData.info);
 		len = send(socket_new_fd, buf, strlen(buf), 0);
 		if (len > 0)
 			egsc_log_info("msg:%s\tsend success，len = %d bytes！\n", buf, len);
@@ -170,6 +173,7 @@ int socketServerLoopSendShort()
 	socklen_t len;
 	int ret;
 	char buf[MQ_INFO_BUFF] = {0};
+	memset(&msgs_out,0,sizeof(msgs_out));
 	while(1){
 		ret = Dequeue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, 0, &msgs_out,MQ_RSV_BUFF_SHORT,ipc_need_wait);
 		if(ret<0){
@@ -177,7 +181,8 @@ int socketServerLoopSendShort()
 			sleep(SOCKET_SEND_SLEEP_SEC);
 			continue;
 		}
-		snprintf(buf,MQ_INFO_BUFF-1,"{\"code\":%d}",msgs_out.msgData.statusCode);
+		//snprintf(buf,MQ_INFO_BUFF-1,"{\"code\":%d}",msgs_out.msgData.statusCode);
+		snprintf(buf,sizeof(buf)-1,"{\"msgtype\":%ld,\"data\":{\"code\":%d}\"}",msgs_out.msgType,msgs_out.msgData.statusCode);
 		len = send(socket_new_fd, buf, strlen(buf), 0);
 		if (len > 0)
 			egsc_log_info("msg:%s\tsend success，len = %d bytes！\n", buf, len);
