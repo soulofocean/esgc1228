@@ -2362,7 +2362,9 @@ static EGSC_RET_CODE mydev_reset_cb(int handle, char *user_id)
     mydev_get_dev_id_str(&s_mydev_dev_list_head, handle, NULL, device_id_dst, sizeof(device_id_dst));
     egsc_log_user("device(%s) reset\n", device_id_dst);
     egsc_log_user("userID(%s).\n", user_id);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"user_id\"=\"%s\"}", handle,user_id);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2375,7 +2377,9 @@ static EGSC_RET_CODE mydev_correction_cb(int handle)
     memset(device_id_dst, 0, sizeof(device_id_dst));
     mydev_get_dev_id_str(&s_mydev_dev_list_head, handle, NULL, device_id_dst, sizeof(device_id_dst));
     egsc_log_user("device(%s) correction\n", device_id_dst);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2401,9 +2405,13 @@ static EGSC_RET_CODE mydev_notify_update_cb(int handle, char *file_url, char *ft
     egsc_log_user("FirmwareVersion(%s).\n", fm_version);
 
     user_dev_get_handle(&s_mydev_dev_list_head, handle, &user_dev);
+	
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
     if(NULL == user_dev)
     {
         egsc_log_error("no found device.\n");
+		snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"desc\":\"no found device.\"}", handle);
+		DevMsgAck(EGSC_RET_ERROR,__func__,msgTmp);
         return EGSC_RET_ERROR;
     }
 
@@ -2449,7 +2457,8 @@ static EGSC_RET_CODE mydev_notify_update_cb(int handle, char *file_url, char *ft
         }
         user_dev->updated = 1;
     }
-
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2463,7 +2472,9 @@ static EGSC_RET_CODE mydev_read_parameter_cb(int handle, egsc_dev_parameters *de
     egsc_log_user("device(%s) read parameter\n", device_id_dst);
 
     user_file_load_parameters(handle, dev_params);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2483,7 +2494,9 @@ static EGSC_RET_CODE mydev_setting_parameters_cb(int handle, egsc_dev_parameters
     egsc_log_debug("dev_specail_param(0x%x).\n", dev_params->dev_specail_param);
 
     user_file_store_parameters(handle, dev_params);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2509,6 +2522,7 @@ static EGSC_RET_CODE mydev_load_certificate_cb(int handle, egsc_subdev_id *p_dev
     egsc_log_user("userName(%s).\n", cert_param->user_name);
     egsc_log_user("userID(%s).\n", cert_param->user_id);
     egsc_log_user("opTime(%s).\n", cert_param->op_time);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
 
     if(NULL != p_dev_id)
     {
@@ -2522,6 +2536,8 @@ static EGSC_RET_CODE mydev_load_certificate_cb(int handle, egsc_subdev_id *p_dev
     if(strlen(cert_param->credence_no) == 0)
     {
         egsc_log_user("authority skip to file.\n");
+		snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"desc\":\"authority skip to file.\"}", handle);
+		DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
         return EGSC_RET_SUCCESS;
     }
 
@@ -2601,7 +2617,8 @@ static EGSC_RET_CODE mydev_load_certificate_cb(int handle, egsc_subdev_id *p_dev
             egsc_log_user("device_id(%s), credence_no(%s) credence already in skip.\n", device_id, cert_param->credence_no);
         }
     }
-
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(ret,__func__,msgTmp);
     return ret;
 }
 
@@ -2621,11 +2638,14 @@ static EGSC_RET_CODE mydev_read_certificate_cb(int handle, int credence_type, ch
     egsc_log_user("device(%s) read certificate\n", device_id);
     egsc_log_user("CredenceType(%d).\n", credence_type);
     egsc_log_user("credenceNo(%s).\n", credence_no);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	
     if((NULL == credence_no) ||
         (strlen(credence_no) == 0))
     {
         egsc_log_user("authority skip read.\n");
+		snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"desc\":\"authority skip read.\"}", handle);
+		DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
         return EGSC_RET_SUCCESS;
     }
 
@@ -2673,7 +2693,8 @@ static EGSC_RET_CODE mydev_read_certificate_cb(int handle, int credence_type, ch
             }
         }
     }
-
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(ret,__func__,msgTmp);
     return ret;
 }
 
@@ -2694,7 +2715,7 @@ static EGSC_RET_CODE mydev_delete_certificate_cb(int handle, egsc_subdev_id *dev
     egsc_log_user("CredenceType(%d).\n", credence_type);
     egsc_log_user("credenceNo(%s).\n", credence_no);
     egsc_log_user("userID(%s).\n", user_id);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
     if(NULL != dev_id)
     {
         egsc_subdev_id *p_dev_id = dev_id;
@@ -2705,6 +2726,8 @@ static EGSC_RET_CODE mydev_delete_certificate_cb(int handle, egsc_subdev_id *dev
         (strlen(credence_no) == 0))
     {
         egsc_log_user("authority skip delete.\n");
+		snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"desc\":\"authority skip delete.\"}", handle);
+		DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
         return EGSC_RET_SUCCESS;
     }
 
@@ -2755,7 +2778,9 @@ static EGSC_RET_CODE mydev_delete_certificate_cb(int handle, egsc_subdev_id *dev
     {
         egsc_log_debug("device_id(%s), credence_no(%s) credence delece failed.\n", device_id, credence_no);
     }
-
+	
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2768,7 +2793,9 @@ static EGSC_RET_CODE mydev_load_certificate_in_batch_cb(int handle, egsc_dev_cb_
 
     snprintf(s_batch_cert_file_id, sizeof(s_batch_cert_file_id), "%s", cert_batch_param->file_id);
     snprintf(s_batch_cert_op_time, sizeof(s_batch_cert_op_time), "%s", cert_batch_param->op_time);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2779,7 +2806,9 @@ static EGSC_RET_CODE mydev_read_certificate_in_batch_cb(int handle, egsc_dev_cb_
 
     snprintf(cert_batch_param->file_id, sizeof(cert_batch_param->file_id), "%s", s_batch_cert_file_id);
     snprintf(cert_batch_param->op_time, sizeof(cert_batch_param->op_time), "%s", s_batch_cert_op_time);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2789,7 +2818,9 @@ static EGSC_RET_CODE mydev_delete_certificate_in_batch_cb(int handle, char *op_t
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("op_time(%s).\n", op_time);
     egsc_log_debug("credence_type(%d).\n", credence_type);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2811,7 +2842,9 @@ static EGSC_RET_CODE mydev_download_black_and_white_list_cb(int handle, egsc_dev
     egsc_log_user("opTime(%s).\n", bw_param->op_time);
     egsc_log_user("remark(%s).\n", bw_param->remark);
     egsc_log_user("sheetType(%d).\n", bw_param->sheet_type);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2826,7 +2859,9 @@ static EGSC_RET_CODE mydev_load_left_car_seat_cb(int handle, egsc_dev_cb_left_ca
     egsc_log_user("device(%s) load left car seat\n", device_id_dst);
     egsc_log_user("remaningSpace(%d).\n", seat_param->remaning_space);
     egsc_log_user("allSpace(%d).\n", seat_param->all_space);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2903,6 +2938,9 @@ static EGSC_RET_CODE mydev_gate_ctrl_cb(int handle, egsc_subdev_id *p_dev_id, in
             }
         }
     }
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2916,7 +2954,9 @@ static EGSC_RET_CODE mydev_play_voice_cb(int handle, char *text)
     egsc_log_user("device(%s) play voice\n", device_id_dst);
 
     egsc_log_user("text(%s).\n", text);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2933,7 +2973,9 @@ static EGSC_RET_CODE mydev_read_vol_cb(int handle, egsc_dev_vol_param *param)
     snprintf(param->start_time, sizeof(param->end_time), "%s", s_end_time);
     param->level1 = s_level1;
     param->level2 = s_level2;
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2955,7 +2997,9 @@ static EGSC_RET_CODE mydev_set_vol_cb(int handle, egsc_dev_vol_param *param)
     s_level2 = param->level2;
     snprintf(s_start_time, sizeof(s_start_time), "%s", param->start_time);
     snprintf(s_end_time, sizeof(s_end_time), "%s", param->end_time);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -2983,7 +3027,9 @@ static EGSC_RET_CODE mydev_fac_visit_control_cb(int handle, egsc_subdev_id *p_de
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3007,7 +3053,9 @@ static EGSC_RET_CODE mydev_fac_key_control_cb(int handle, egsc_subdev_id *p_dev_
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3028,6 +3076,9 @@ static EGSC_RET_CODE mydev_fac_calling_cb(int handle, egsc_subdev_id *p_dev_id, 
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3052,7 +3103,9 @@ static EGSC_RET_CODE mydev_fac_inter_call_auth_cb(int handle, egsc_subdev_id *p_
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3077,6 +3130,9 @@ static EGSC_RET_CODE mydev_fac_inter_call_lighting_cb(int handle, egsc_subdev_id
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3094,6 +3150,9 @@ static EGSC_RET_CODE mydev_fac_lift_lighting_cb(int handle, egsc_subdev_id *p_de
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3110,6 +3169,9 @@ static EGSC_RET_CODE mydev_fac_delayed_closing_cb(int handle, egsc_subdev_id *p_
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3126,7 +3188,9 @@ static EGSC_RET_CODE mydev_fac_status_req_cb(int handle, egsc_subdev_id *p_dev_i
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 static EGSC_RET_CODE mydev_fac_lift_ba_status_cb(int handle, egsc_dev_cb_fac_lift_ba_status_param *fac_status_param)
@@ -3174,7 +3238,9 @@ static EGSC_RET_CODE mydev_fac_lift_ba_status_cb(int handle, egsc_dev_cb_fac_lif
     {
         fac_status_param->res_lift_car_num = 0;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3194,7 +3260,9 @@ static EGSC_RET_CODE mydev_pak_send_showinfo_cb(int handle, egsc_subdev_id *p_de
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3230,6 +3298,9 @@ static EGSC_RET_CODE mydev_pak_control_lock_cb(int handle, char *place_no, char 
         }
         s_lock_optype = operate_type;
     }
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3256,7 +3327,9 @@ static EGSC_RET_CODE mydev_boun_chan_setupalarm_cb(int handle, int setup_type, c
     }
     snprintf(s_alarmzone_chan, sizeof(s_alarmzone_chan), "%s", alarmzone_chan);
     egsc_log_user("alarmzone_chan: %s \n", s_alarmzone_chan);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3274,7 +3347,9 @@ static EGSC_RET_CODE mydev_boun_subchan_clearalarm_cb(int handle, int subsystem_
     s_subsystem_num = subsystem_num;
 
     egsc_log_user("boun subchan clearalarm(subsystemnum:%d) \n", s_subsystem_num);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3294,7 +3369,9 @@ static EGSC_RET_CODE mydev_query_dev_status_cb(int handle, egsc_subdev_id *p_dev
     {
         egsc_log_debug("device_inner_id[%04d][%s][%04d]\n", p_dev_id->subdev_type, p_dev_id->subdev_mac, p_dev_id->subdev_num);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3317,7 +3394,9 @@ static EGSC_RET_CODE mydev_snap_picture_cb(int handle, char *image_id, int len)
         egsc_log_debug("param error\n");
         return EGSC_RET_ERROR;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3330,7 +3409,9 @@ static EGSC_RET_CODE mydev_pak_reset_dg_cb(int handle)
     memset(device_id_dst, 0, sizeof(device_id_dst));
     mydev_get_dev_id_str(&s_mydev_dev_list_head, handle, NULL, device_id_dst, sizeof(device_id_dst));
     egsc_log_user("device(%s) pak reset dg\n", device_id_dst);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3348,7 +3429,9 @@ static EGSC_RET_CODE mydev_pak_led_display_cb(int handle, char *text)
     {
         egsc_log_user("text[%s]\n", text);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"text\":\"%s\"}", handle, text);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3366,7 +3449,9 @@ static EGSC_RET_CODE mydev_pak_load_led_info_cb(int handle, char *text)
     {
         egsc_log_user("text[%s]\n", text);
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"text\":\"%s\"}", handle,text);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3397,7 +3482,9 @@ static EGSC_RET_CODE mydev_rsp_pak_intercom_control_cb(int handle, int command_t
 
     egsc_log_user("command_type[%d]\n", command_type);
     egsc_log_user("sdp[%s]\n", sdp);
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3435,7 +3522,9 @@ static EGSC_RET_CODE mydev_rsp_ads_trans_material_cb(int handle, egsc_dev_trans_
             egsc_log_user("material[%d].character(%s)\n", i, material_param->material[i].character);
         }
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3491,7 +3580,9 @@ static EGSC_RET_CODE mydev_rsp_ads_query_term_cb(int handle, egsc_dev_ads_query_
         memcpy(recv_param->terminal_info.resolution.width, "1080", strlen("1080"));
         memcpy(recv_param->terminal_info.resolution.height, "720", strlen("720"));
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3590,7 +3681,9 @@ static EGSC_RET_CODE mydev_rsp_ads_add_program_cb(int handle, egsc_dev_ads_progr
     {
         *program_id = program_id_inner;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3612,7 +3705,9 @@ static EGSC_RET_CODE mydev_rsp_ads_delete_program_cb(int handle, egsc_dev_ads_de
             egsc_log_user("IdList[%d].id(%d).\n", i, param->id[i]);
         }
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3711,7 +3806,9 @@ static EGSC_RET_CODE mydev_rsp_ads_set_program_cb(int handle, egsc_dev_ads_progr
     {
         *program_id = program_id_inner;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3771,7 +3868,9 @@ static EGSC_RET_CODE mydev_rsp_ads_add_schedule_cb(int handle, egsc_dev_ads_sche
     {
         *schedule_id = schedule_id_in;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3793,7 +3892,9 @@ static EGSC_RET_CODE mydev_rsp_ads_delete_schedule_cb(int handle, egsc_dev_ads_d
             egsc_log_user("IdList[%d].id(%d).\n", i, param->id[i]);
         }
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3853,7 +3954,9 @@ static EGSC_RET_CODE mydev_rsp_ads_set_schedule_cb(int handle, egsc_dev_ads_sche
     {
         *schedule_id = schedule_id_in;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3889,7 +3992,9 @@ static EGSC_RET_CODE mydev_rsp_ads_publish_schedule_cb(int handle, egsc_dev_ads_
     {
         *schedule_id = schedule_id_in;
     }
-
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
 
@@ -3902,6 +4007,9 @@ static void mydev_upload_dev_status_res_cb(int handle, int req_id, EGSC_RET_CODE
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 
 static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
@@ -3910,10 +4018,9 @@ static void mydev_upload_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
-	char msgTmp[1024] = {0}; 
-	sprintf(msgTmp,"handle(%d) req_id=[%d] ret=[%d]", handle,req_id,ret);
-    egsc_log_debug("%s\n", msgTmp);
-	DevMsgAck(ret,__func__,msgTmp);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 	//int ret2 = PutSendShortMQ(ret);
 	//egsc_log_debug("ret2(%d).\n",ret2);
 	/*char buf[MAXBUF+1];
@@ -3933,6 +4040,9 @@ static void mydev_upload_event_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 static void mydev_upload_credence_load_result_cb(int handle, int req_id, EGSC_RET_CODE ret)
 {
@@ -3940,6 +4050,9 @@ static void mydev_upload_credence_load_result_cb(int handle, int req_id, EGSC_RE
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 static void mydev_upload_fac_dev_status_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
 {
@@ -3947,6 +4060,9 @@ static void mydev_upload_fac_dev_status_res_cb(int handle, int req_id, EGSC_RET_
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 static void mydev_upload_fac_elevator_record_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
 {
@@ -3954,6 +4070,9 @@ static void mydev_upload_fac_elevator_record_res_cb(int handle, int req_id, EGSC
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 static void mydev_upload_fac_ba_status_res_cb(int handle, int req_id, EGSC_RET_CODE ret)
 {
@@ -3961,6 +4080,9 @@ static void mydev_upload_fac_ba_status_res_cb(int handle, int req_id, EGSC_RET_C
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug("ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 
 static void mydev_req_pak_intercom_control_cb(int handle, int req_id, EGSC_RET_CODE ret)
@@ -3969,6 +4091,9 @@ static void mydev_req_pak_intercom_control_cb(int handle, int req_id, EGSC_RET_C
     egsc_log_debug("handle(%d).\n", handle);
     egsc_log_debug("req_id(%d).\n", req_id);
     egsc_log_debug(">>ret(%d).\n",ret);
+	char msgTmp[MQ_INFO_BUFF] = {0}; 
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d}", handle);
+	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
 }
 
 static EGSC_RET_CODE mydev_upload_dev_status(char *dev_id, char *dev_status)
