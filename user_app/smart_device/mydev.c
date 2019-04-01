@@ -2347,8 +2347,7 @@ static void mydev_status_callback(int handle, EGSC_DEV_STATUS_CODE status,char *
     egsc_log_user("desc_info(%s).\n", desc_info);
 	//int ret = PutSendShortMQ(status);
 	char msgTmp[MQ_INFO_BUFF] = {0}; 
-	sprintf(msgTmp,"handle(%d) status=[%d] desc=[%s]", handle,status,desc_info);
-    egsc_log_debug("%s\n", msgTmp);
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"status\"=%d,\"desc\"=\"%s\"}", handle,status,desc_info);
 	DevMsgAck(status,__func__,msgTmp);
 	egsc_log_user("device(%s) status = %d\ns",device_id_dst,status);
 }
