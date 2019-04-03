@@ -182,7 +182,7 @@ int socketServerLoopSendShort()
 			continue;
 		}
 		//snprintf(buf,MQ_INFO_BUFF-1,"{\"code\":%d}",msgs_out.msgData.statusCode);
-		snprintf(buf,sizeof(buf)-1,"{\"msgtype\":%ld,\"data\":{\"code\":%d}\"}",msgs_out.msgType,msgs_out.msgData.statusCode);
+		snprintf(buf,sizeof(buf)-1,"{\"msgtype\":%ld,\"data\":{\"code\":%d}}",msgs_out.msgType,msgs_out.msgData.statusCode);
 		len = send(socket_new_fd, buf, strlen(buf), 0);
 		if (len > 0)
 			egsc_log_info("msg:%s\tsend success，len = %d bytes！\n", buf, len);
