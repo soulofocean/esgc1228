@@ -54,29 +54,6 @@ int Update_Dev_Fork_List(unsigned int arr[], int arrIndex, EGSC_DEV_TYPE devType
 	arr[arrIndex] = GetMQMsgType(devType,devCount);
 	return EGSC_RET_SUCCESS;
 }
-int my_itoa(int intValue,char *outStr,int str_len)
-{
-	return snprintf(outStr,str_len,"%d",intValue);
-}
-/*将字符串source中的oldStr子串替换为destStr字串,存放在result中*/
-int replace_string(char *result, char *source, const char* oldStr, char *destStr)
-{
-    char *q=NULL;
-    char *p=NULL;	
-	if(NULL == result || NULL == source || NULL == oldStr || NULL == destStr)
-		return -1;	   
-    p=source;
-    while((q=strstr(p, oldStr))!=NULL)
-    {
-        strncpy(result, p, q-p);
-        result[q-p]= '\0';//very important, must attention!
-        strcat(result, destStr);
-        strcat(result, q+strlen(oldStr));
-        strcpy(p,result);
-    }
-    strcpy(result, p);   
-	return 0;
-}
 int replace_err_code(char *result,char *source, int err_code)
 {
 	char tmp[INT_STR_LEN] = {0};

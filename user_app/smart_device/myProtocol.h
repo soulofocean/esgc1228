@@ -14,8 +14,6 @@ typedef enum _Rsv_Msg_Process_Result{
 }RsvMsgProcResultEnum;
 unsigned int CombineInt(unsigned int devType, unsigned int devIndex);
 int Update_Dev_Fork_List(unsigned         int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount);
-int my_itoa(int intValue,char *outStr,int str_len);
-int replace_string(char *result, char *source, const char* oldStr, char *destStr);
 int replace_err_code(char *result,char *source, int err_code);
 int replace_dev_status(char *result,char *source, int dev_status);
 int replace_event_type(char *result,char *source, int event_type);

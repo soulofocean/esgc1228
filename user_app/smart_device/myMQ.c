@@ -9,6 +9,29 @@
 #include "egsc_util.h"
 DEV_MSG_ACK_ENUM global_ack_type = NO_ACK;
 long global_msg_type = SOCKET_SEND_MSG_TYPE;
+int my_itoa(int intValue,char *outStr,int str_len)
+{
+	return snprintf(outStr,str_len,"%d",intValue);
+}
+/*将字符串source中的oldStr子串替换为destStr字串,存放在result中*/
+int replace_string(char *result, char *source, const char* oldStr, char *destStr)
+{
+    char *q=NULL;
+    char *p=NULL;	
+	if(NULL == result || NULL == source || NULL == oldStr || NULL == destStr)
+		return -1;	   
+    p=source;
+    while((q=strstr(p, oldStr))!=NULL)
+    {
+        strncpy(result, p, q-p);
+        result[q-p]= '\0';//very important, must attention!
+        strcat(result, destStr);
+        strcat(result, q+strlen(oldStr));
+        strcpy(p,result);
+    }
+    strcpy(result, p);   
+	return 0;
+}
 unsigned int GetMQMsgType(int dev_type,int dev_offset)
 {
 	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
@@ -133,16 +156,26 @@ int PutSendMQ(int code,const char* func_name,char * info)
 	msg_struct msgs;
 	memset(&msgs,0,sizeof(msg_struct));
 	msgs.msgType = global_msg_type;
+	char tmp[MQ_INFO_BUFF] = {0};
+	#if 0 
+	//这些操作放在Client端执行替换就可以了，此处不做处理
 	char jsonmsg[MQ_INFO_BUFF] = {0};
 	if(strstr(info,"{")==NULL)
 	{
-		snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
+		snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
 	}
 	else
 	{
-		snprintf(jsonmsg,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":%s}",getpid(),code,func_name,info);
+		snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":%s}",getpid(),code,func_name,info);
 	}
-	strncpy(msgs.msgData.info,jsonmsg,sizeof(msgs.msgData.info)-1);
+	replace_string(jsonmsg, tmp, "\"{", "{");
+	strncpy(tmp,jsonmsg,MQ_INFO_BUFF-1);
+	replace_string(jsonmsg, tmp, "}\"", "}");
+	strncpy(tmp,jsonmsg,MQ_INFO_BUFF-1);
+	#else
+	snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
+	#endif
+	strncpy(msgs.msgData.info,tmp,sizeof(msgs.msgData.info)-1);
 	return Enqueue_MQ(SOCKET_SEND_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
 }
 int PutSendShortMQ(int status_code)
