@@ -2347,7 +2347,7 @@ static void mydev_status_callback(int handle, EGSC_DEV_STATUS_CODE status,char *
     egsc_log_user("desc_info(%s).\n", desc_info);
 	//int ret = PutSendShortMQ(status);
 	char msgTmp[MQ_INFO_BUFF] = {0}; 
-	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"status\"=%d,\"desc\"=\"%s\"}", handle,status,desc_info);
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"status\":%d,\"desc\":\"%s\"}", handle,status,desc_info);
 	DevMsgAck(status,__func__,msgTmp);
 	egsc_log_user("device(%s) status = %d\ns",device_id_dst,status);
 }
@@ -2363,7 +2363,7 @@ static EGSC_RET_CODE mydev_reset_cb(int handle, char *user_id)
     egsc_log_user("device(%s) reset\n", device_id_dst);
     egsc_log_user("userID(%s).\n", user_id);
 	char msgTmp[MQ_INFO_BUFF] = {0}; 
-	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"user_id\"=\"%s\"}", handle,user_id);
+	snprintf(msgTmp,sizeof(msgTmp)-1,"{\"handle\":%d,\"user_id\":\"%s\"}", handle,user_id);
 	DevMsgAck(EGSC_RET_SUCCESS,__func__,msgTmp);
     return EGSC_RET_SUCCESS;
 }
