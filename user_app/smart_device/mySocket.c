@@ -13,7 +13,7 @@
 
 #include "mySocket.h"
 #include "egsc_util.h"
-#include "myMQ.h"
+#include "myProtocol.h"
 
 static int socket_new_fd;
 

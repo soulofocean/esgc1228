@@ -7,42 +7,9 @@
 #include<string.h>
 #include "myMQ.h"
 #include "egsc_util.h"
-DEV_MSG_ACK_ENUM global_ack_type = NO_ACK;
-long global_msg_type = SOCKET_SEND_MSG_TYPE;
-int my_itoa(int intValue,char *outStr,int str_len)
+unsigned int GetDispatchMQKey(long msg_type)
 {
-	return snprintf(outStr,str_len,"%d",intValue);
-}
-/*将字符串source中的oldStr子串替换为destStr字串,存放在result中*/
-int replace_string(char *result, char *source, const char* oldStr, char *destStr)
-{
-    char *q=NULL;
-    char *p=NULL;	
-	if(NULL == result || NULL == source || NULL == oldStr || NULL == destStr)
-		return -1;	   
-    p=source;
-    while((q=strstr(p, oldStr))!=NULL)
-    {
-        strncpy(result, p, q-p);
-        result[q-p]= '\0';//very important, must attention!
-        strcat(result, destStr);
-        strcat(result, q+strlen(oldStr));
-        strcpy(p,result);
-    }
-    strcpy(result, p);   
-	return 0;
-}
-unsigned int GetMQMsgType(int dev_type,int dev_offset)
-{
-	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
-}
-unsigned int GetDevType(unsigned int msg_type)
-{
-	return msg_type>>DEV_INDEX_OFFSET;
-}
-unsigned int GetDevCount(unsigned int msg_type)
-{
-	return msg_type & DEV_OFFSET_OP;
+	return msg_type & 0xFFFFFFFF;
 }
 int create_mq(unsigned int mqKey,int *mqid_out)
 {
@@ -143,97 +110,6 @@ int Delete_MQ(unsigned int mqKey)
 	}
 	return ret;
 }
-unsigned int GetDispatchMQKey(long msg_type)
-{
-	return msg_type & 0xFFFFFFFF;
-}
-int PutRsvMQ(msg_struct msgs)
-{
-	return Enqueue_MQ(SOCKET_RSV_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
-}
-int PutSendMQ(int code,const char* func_name,char * info)
-{
-	msg_struct msgs;
-	memset(&msgs,0,sizeof(msg_struct));
-	msgs.msgType = global_msg_type;
-	char tmp[MQ_INFO_BUFF] = {0};
-	#if 0 
-	//这些操作放在Client端执行替换就可以了，此处不做处理
-	char jsonmsg[MQ_INFO_BUFF] = {0};
-	if(strstr(info,"{")==NULL)
-	{
-		snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
-	}
-	else
-	{
-		snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":%s}",getpid(),code,func_name,info);
-	}
-	replace_string(jsonmsg, tmp, "\"{", "{");
-	strncpy(tmp,jsonmsg,MQ_INFO_BUFF-1);
-	replace_string(jsonmsg, tmp, "}\"", "}");
-	strncpy(tmp,jsonmsg,MQ_INFO_BUFF-1);
-	#else
-	snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
-	#endif
-	strncpy(msgs.msgData.info,tmp,sizeof(msgs.msgData.info)-1);
-	return Enqueue_MQ(SOCKET_SEND_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
-}
-int PutSendShortMQ(int status_code)
-{
-	msg_short_struct msgs;
-	memset(&msgs,0,sizeof(msg_short_struct));
-	msgs.msgType = global_msg_type;
-	msgs.msgData.statusCode = status_code;
-	return Enqueue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, msgs, MQ_SEND_BUFF_SHORT, ipc_no_wait);
-}
-
-int PutDispatchMQ(int dev_type,int dev_index,char* info)
-{
-	egsc_log_debug("Enter PutDispatchMQ dev_type=[%d] dev_index=[%d] info=[%s]\n",dev_type,dev_index,info);
-	msg_struct msgs;
-	msgs.msgType = GetMQMsgType(dev_type, dev_index);
-	msgs.msgData.devType = dev_type;
-	msgs.msgData.offset = dev_index;
-	strncpy(msgs.msgData.info,info,sizeof(msgs.msgData.info));
-	return Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
-}
-int PutDispatchNMQ(msg_struct msgs,int put_count)
-{
-	int index = 0;
-	int ret = 0;
-	for(;index<put_count;++index){
-		ret = Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
-		if(ret < 0)
-			return ret;
-		if(index<put_count){
-			msgs.msgType++;
-			msgs.msgData.offset++;
-		}
-	}
-	return ret;
-}
-
-int GetRsvMQ(msg_struct *msgbuff)
-{
-	return Dequeue_MQ(SOCKET_RSV_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
-}
-int GetSendMQ(msg_struct *msgbuff)
-{
-	return Dequeue_MQ(SOCKET_SEND_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
-}
-int GetSendShortMQ(msg_short_struct *msgbuff)
-{
-	return Dequeue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF_SHORT, ipc_need_wait);
-}
-
-int GetDispatchMQ(long msgType,msg_struct *msgbuff)
-{
-	return Dequeue_MQ(GetDispatchMQKey(msgType), 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
-}
-int DelDispatchMQ(long msgType)
-{
-	return Delete_MQ(GetDispatchMQKey(msgType));
-}
 int DeleteAllMQ(int max_msg_id)
 {
 	int d_index = max_msg_id;
@@ -246,34 +122,5 @@ int DeleteAllMQ(int max_msg_id)
 	printf("delete count:%d\n",d_count);
 	return EGSC_RET_SUCCESS;
 }
-void DevMsgAck(int code,const char* func_name,char* msg)
-{
-	egsc_log_debug("enter.\n");
-	EGSC_RET_CODE ret = EGSC_RET_ERROR;
-	//后续useLongMsg可能扩展成枚举，这里先直接判断
-	switch (global_ack_type)
-	{
-		case LONG_ACK:
-		{
-			ret = PutSendMQ(code,func_name,msg);
-			break;
-		}
-		case SHORT_ACK:
-		{
-			ret = PutSendShortMQ(code);
-			break;
-		}
-		case NO_ACK:
-		{
-			egsc_log_debug("PID[%d] is set NO_ACK\n",getpid());
-			break;
-		}
-		default:
-		{
-			egsc_log_error("Invalid Type:[%d]\n",global_ack_type);
-			break;
-		}
-	}
-	egsc_log_debug("pid:[%d] global_ack_type=[%d] ret=[%d]\n",getpid(),global_ack_type,ret);
-}
+
 

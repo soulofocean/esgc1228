@@ -63,11 +63,11 @@ int main(int argc, char * argv [ ])
 	ret = egsc_platform_task_create("socket_rcv_task", &socket_rcv_tid, socket_rcv_fn, arg, 1024, 0);
 	ret = egsc_platform_task_create("socket_send_task", &socket_send_tid, socket_send_fn, arg, 1024, 0);
 	ret = egsc_platform_task_create("socket_send_short_task", &socket_send_short_tid, socket_send_short_fn, arg, 1024, 0);
-	msgQueenDataType myarg;
-	int main_pid = getpid();
 	ret = process_loop_msg();
 	return ret;
-
+	#if 0
+	msgQueenDataType myarg;
+	int main_pid = getpid();
 	//无Socket的保留代码，目前被return被截断
 	unsigned int dev_arr[DEV_FORK_LIST_MAX_SIZE]={0};
 	ret = Update_Dev_Fork_List(dev_arr, 0, EGSC_TYPE_DOOR_CTRL, 2);
@@ -88,4 +88,5 @@ int main(int argc, char * argv [ ])
 		ret = fork_do_V2(&myarg);
 	}
 	return ret;
+	#endif
 }

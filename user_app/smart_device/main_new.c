@@ -10,6 +10,8 @@
 #include "socket_server.h"
 
 #include "myMQ.h"
+#include "myProtocol.h"
+
 //#include<stdlib.h>
 
 

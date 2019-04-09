@@ -3,6 +3,7 @@
 #include "egsc_util.h"
 #include "mySocket.h"
 #include "myMQ.h"
+#include "myProtocol.h"
 
 int main_test(int argc, char * argv [ ])
 {

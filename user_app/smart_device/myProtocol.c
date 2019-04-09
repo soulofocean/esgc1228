@@ -6,6 +6,7 @@
 #include "myMQ.h"
 #include "egsc_util.h"
 #include <time.h>
+#include "myCommonAPI.h"
 #define INT_STR_LEN 11
 const char devStatusFlag[] = "===DEV_STATUS===";
 const char sysTimeFlag[] = "===SYSTEM_TIME===";
@@ -42,9 +43,21 @@ const char doorStatusFlag[] = "===DOOR_STATUS===";
 const char errStatusFlag[] = "===ERR_STATUS===";//i
 const char errMsgFlag[] = "===ERR_MSG===";
 const char fireCtlStatusFlag[] = "===FIRE_CTL_STATUS===";//i
-
-
 unsigned int global_fork_us = 1000;
+DEV_MSG_ACK_ENUM global_ack_type = NO_ACK;
+long global_msg_type = SOCKET_SEND_MSG_TYPE;
+unsigned int GetMQMsgType(int dev_type,int dev_offset)
+{
+	return (dev_type << DEV_INDEX_OFFSET) + dev_offset;
+}
+unsigned int GetDevType(unsigned int msg_type)
+{
+	return msg_type>>DEV_INDEX_OFFSET;
+}
+unsigned int GetDevCount(unsigned int msg_type)
+{
+	return msg_type & DEV_OFFSET_OP;
+}
 int Update_Dev_Fork_List(unsigned int arr[], int arrIndex, EGSC_DEV_TYPE devType, int devCount)
 {
 	if(arrIndex > DEV_FORK_LIST_MAX_SIZE - 1){
@@ -268,39 +281,120 @@ int ForkMulDev(unsigned int dev_arr[],msgQueenDataType *myarg)
 	}
 	return 0;
 }
-int split_arg_by_space(char *source_arg,char (*result)[ARG_LEN],int arg_count,int *used_count)
+int PutRsvMQ(msg_struct msgs)
 {
-	int ret = 0;
-	//计算理论上空格加上参数的总长度,arg_count意为最大拆分的长度，目前按照dev_ctl 0 0 record arg最长5个
-	int max_len = ARG_ARR_COUNT*ARG_LEN+arg_count-1;
-	*used_count = 0;
-	if(strlen(source_arg)>max_len){
-		egsc_log_error("source_arg too long[len=%d]\n",strlen(source_arg));
-		return -1;
-	}
-	int arg_index = 0;
-	char tmp[max_len+1];
-	memset(tmp,0,max_len+1);
-	for(arg_index=0;arg_index<arg_count;++arg_index){
-		memset(result[arg_index],0,sizeof(result[arg_index]));
-	}
-	strcpy(tmp,source_arg);
-	for(arg_index=0;arg_index<arg_count-1;++arg_index){
-		sscanf(tmp,"%s %[^\n]",result[arg_index],result[arg_index+1]);
-		if(strcmp(result[arg_index],"\0")==0){
-			break;
-		}
-		(*used_count)++;
-		strcpy(tmp,result[arg_index+1]);
-	}
-	if(arg_index == arg_count-1 && strcmp(result[arg_index],"\0")!=0 && *used_count<ARG_ARR_COUNT)
+	return Enqueue_MQ(SOCKET_RSV_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
+}
+int PutSendMQ(int code,const char* func_name,char * info)
+{
+	msg_struct msgs;
+	memset(&msgs,0,sizeof(msg_struct));
+	msgs.msgType = global_msg_type;
+	char tmp[MQ_INFO_BUFF] = {0};
+	#if 0 
+	//这些操作放在Client端执行替换就可以了，此处不做处理
+	char jsonmsg[MQ_INFO_BUFF] = {0};
+	if(strstr(info,"{")==NULL)
 	{
-		(*used_count)++;
+		snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
 	}
-	//display result
-	egsc_log_debug("usedcount=[%d]\n",*used_count);
-	for(arg_index=0;arg_index<ARG_ARR_COUNT;++arg_index){
-		egsc_log_info("result[%d]=[%s]\tcompare:%d\n",arg_index,result[arg_index],strcmp(result[arg_index],"\0"));
+	else
+	{
+		snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":%s}",getpid(),code,func_name,info);
+	}
+	replace_string(jsonmsg, tmp, "\"{", "{");
+	strncpy(tmp,jsonmsg,MQ_INFO_BUFF-1);
+	replace_string(jsonmsg, tmp, "}\"", "}");
+	strncpy(tmp,jsonmsg,MQ_INFO_BUFF-1);
+	#else
+	snprintf(tmp,MQ_INFO_BUFF-1,"{\"pid\":\%u,\"code\":%d,\"func\":\"\%s\",\"info\":\"%s\"}",getpid(),code,func_name,info);
+	#endif
+	strncpy(msgs.msgData.info,tmp,sizeof(msgs.msgData.info)-1);
+	return Enqueue_MQ(SOCKET_SEND_MQ_KEY, msgs, MQ_SEND_BUFF, ipc_no_wait);
+}
+int PutSendShortMQ(int status_code)
+{
+	msg_short_struct msgs;
+	memset(&msgs,0,sizeof(msg_short_struct));
+	msgs.msgType = global_msg_type;
+	msgs.msgData.statusCode = status_code;
+	return Enqueue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, msgs, MQ_SEND_BUFF_SHORT, ipc_no_wait);
+}
+
+int PutDispatchMQ(int dev_type,int dev_index,char* info)
+{
+	egsc_log_debug("Enter PutDispatchMQ dev_type=[%d] dev_index=[%d] info=[%s]\n",dev_type,dev_index,info);
+	msg_struct msgs;
+	msgs.msgType = GetMQMsgType(dev_type, dev_index);
+	msgs.msgData.devType = dev_type;
+	msgs.msgData.offset = dev_index;
+	strncpy(msgs.msgData.info,info,sizeof(msgs.msgData.info));
+	return Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
+}
+int PutDispatchNMQ(msg_struct msgs,int put_count)
+{
+	int index = 0;
+	int ret = 0;
+	for(;index<put_count;++index){
+		ret = Enqueue_MQ(GetDispatchMQKey(msgs.msgType), msgs, MQ_SEND_BUFF, ipc_no_wait);
+		if(ret < 0)
+			return ret;
+		if(index<put_count){
+			msgs.msgType++;
+			msgs.msgData.offset++;
+		}
 	}
 	return ret;
+}
+
+int GetRsvMQ(msg_struct *msgbuff)
+{
+	return Dequeue_MQ(SOCKET_RSV_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
+}
+int GetSendMQ(msg_struct *msgbuff)
+{
+	return Dequeue_MQ(SOCKET_SEND_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
+}
+int GetSendShortMQ(msg_short_struct *msgbuff)
+{
+	return Dequeue_MQ_Short(SOCKET_SEND_SHORT_MQ_KEY, 0, msgbuff, MQ_RSV_BUFF_SHORT, ipc_need_wait);
+}
+
+int GetDispatchMQ(long msgType,msg_struct *msgbuff)
+{
+	return Dequeue_MQ(GetDispatchMQKey(msgType), 0, msgbuff, MQ_RSV_BUFF, ipc_need_wait);
+}
+int DelDispatchMQ(long msgType)
+{
+	return Delete_MQ(GetDispatchMQKey(msgType));
+}
+void DevMsgAck(int code,const char* func_name,char* msg)
+{
+	egsc_log_debug("enter.\n");
+	EGSC_RET_CODE ret = EGSC_RET_ERROR;
+	//后续useLongMsg可能扩展成枚举，这里先直接判断
+	switch (global_ack_type)
+	{
+		case LONG_ACK:
+		{
+			ret = PutSendMQ(code,func_name,msg);
+			break;
+		}
+		case SHORT_ACK:
+		{
+			ret = PutSendShortMQ(code);
+			break;
+		}
+		case NO_ACK:
+		{
+			egsc_log_debug("PID[%d] is set NO_ACK\n",getpid());
+			break;
+		}
+		default:
+		{
+			egsc_log_error("Invalid Type:[%d]\n",global_ack_type);
+			break;
+		}
+	}
+	egsc_log_debug("pid:[%d] global_ack_type=[%d] ret=[%d]\n",getpid(),global_ack_type,ret);
 }

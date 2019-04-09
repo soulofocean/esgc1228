@@ -24,6 +24,7 @@
 
 #include "myMQ.h"
 #include "myProtocol.h"
+#include "myCommonAPI.h"
 
 #define EGSC_SUBDEV_NUM     1
 #define MYDEV_SOFT_VERSION              "0.1.0"
